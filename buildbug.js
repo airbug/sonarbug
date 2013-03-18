@@ -62,9 +62,34 @@ buildProperties({
         ],
         testPaths: [
             "../bugjs/projects/bugjs/js/test"
+        ]
+    },
+    sonarbugclient: {
+        packageJson: {
+            name: "sonarbugclient",
+            version: "0.0.1",
+            main: "./lib/SonarBugClient.js",
+            dependencies: {
+                bugpack: "https://s3.amazonaws.com/airbug/bugpack-0.0.4.tgz"
+            },
+            scripts: {}
+        },
+        sourcePaths: [
+            "./projects/sonarbugclient/js/src",
+            "../bugjs/projects/bugjs/js/src",
+            "../bugjs/projects/bugtrace/js/src",
+            '../bugjs/projects/bugflow/js/src',
+            '../bugjs/projects/bugboil/js/src',
+            "../bugjs/projects/bugfs/js/src",
+            "../bugjs/projects/annotate/js/src",
+            "../bugunit/projects/bugunit/js/src"
         ],
-        binPaths: [
-            "./projects/deploybug/bin"
+        scriptPaths: [
+            "./projects/sonarbugclient/js/scripts",
+            "../bugunit/projects/bugunit/js/scripts"
+        ],
+        testPaths: [
+            "../bugjs/projects/bugjs/js/test"
         ]
     },
     splitbugserver: {

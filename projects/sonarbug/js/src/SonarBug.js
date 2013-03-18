@@ -15,100 +15,119 @@
 // Common Modules
 //-------------------------------------------------------------------------------
 
-var bugpack = require('bugpack').context(module);
-var http = require('http');
-var path = require('path');
-var io = require('socket.io');
-var express = require(express);
+var bugpack     = require('bugpack').context(module);
+var fs          = require('fs');
+var http        = require('http');
+var path        = require('path');
+var io          = require('socket.io');
+var express     = require('express');
 
 //-------------------------------------------------------------------------------
 // BugPack
 //-------------------------------------------------------------------------------
 
+var Class       = bugpack.require('Class');
+var Obj         = bugpack.require('Obj');
+
+//-------------------------------------------------------------------------------
+//
+//-------------------------------------------------------------------------------
 
 var SonarBug = Class.extend(Obj, {
-   _constructor: function(){
-       
-   },
-   
-   initialize: function(){
-       this.app = express();
-       
-       this.configure(app, express, function(){
-           console.log("SonarBug configured");
-       });
-   },
-   
-   start: function(){
-       console.log("Starting SonarBug...");
+    _constructor: function(){
+        this.app = null;
+        this.server = null;
+    },
 
-       var app = this.app;
+    start: function(){
+        console.log("Starting SonarBug...");
 
-       //TODO: Allow this value to be configurable using a configuration json file.
-       var port = this.port || 8000;
+        var app = this.app = express();
 
-       this.configure(function(){
-           console.log("SonarBug configured");
-       });
-       
-       // Create Server
-       var server = http.createServer(app);
+        //TODO: Allow this value to be configurable using a configuration json file.
+        this.configure(app, express, function(){
+            console.log("SonarBug configured");
+        });
 
-       this.enableSockets(server, function(){
-           console.log("SonarBug sockets enabled");
-       });
+        // Create Server
+        var server = this.server = http.createServer(app);
 
-       server.listen(app.get('port'), function(){
-           console.log("SonarBug successfully started");
-           console.log("SonarBug listening on port", app.get('port'));
-       });
-   },
+        this.enableSockets(server, function(){
+            console.log("SonarBug sockets enabled");
+        });
 
-   configure: function(app, callback){
-       app.configure(function(){
-           app.set('port', process.env.PORT || 3000);
-           // app.use(express.favicon());
-           app.use(express.logger('dev'));
-           // app.use(express.bodyParser());
-           // app.use(express.methodOverride());
-           app.use(app.router);
-           app.use(express.static(path.join(__dirname, 'public')));
-       });
+        server.listen(app.get('port'), function(){
+            console.log("SonarBug successfully started");
+            console.log("SonarBug listening on port", app.get('port'));
+        });
+    },
 
-       app.configure('development', function(){
-           app.use(express.errorHandler());
-       });
+    configure: function(app, express, callback){
+        app.configure(function(){
+            app.set('port', process.env.PORT || 3000);
+            // app.use(express.favicon());
+            app.use(express.logger('dev'));
+            // app.use(express.bodyParser());
+            // app.use(express.methodOverride());
+            app.use(app.router);
+            // app.use(express.static(path.join(__dirname, 'public')));
+        });
 
-       callback();
-   },
-   
-   enableSockets: function(server){
-       var ioManager = io.listen(server);
-       ioManager.sockets.on('connection', function (socket) {
-           console.log("Connection established")
+        app.configure('development', function(){
+            app.use(express.errorHandler());
+        });
 
-           socket.on('error', function(reason){
-              console.log('Error:', reason); 
-           });
+        callback();
+    },
 
-           socket.on('tracklog', function(data){
-               var visitID = data.visitID;
-               var userID = data.userID;
-               var writeStream = fs.createWriteStream(userId + path.sep + visitID + '.log', { flags: 'w', encoding: null, mode: 0666 });
-               writeStream.write(data, function(){
-                   writeStream.end();
-               })
-               
-               writeStream.on("end", function() {
-                 stream.end();
-               });
-           });
+    enableSockets: function(server){
+        var ioManager = io.listen(server);
+        ioManager.sockets.on('connection', function (socket) {
+            console.log("Connection established")
+            var userID;
+            var visitID;
+            var logFileName;
 
-           socket.on('disconnect', function(data){
-               
-           });
-       });
-   }
+            socket.on('startTracking', function(data){
+                userID = data.userID;
+                visitID = data.visitID;
+                logFileName = userID + '/' + visitID + '.log';
+
+                if(!fs.existsSync(userID + '/')){
+                    fs.mkdirSync(userID + '/', 0777);
+                }
+
+                fs.appendFile(logFileName, JSON.stringify(data) + '\n', function(){});
+
+                socket.removeAllListeners('startTracking');
+                console.log("startTracking:", "userID:", userID, "visitID:", visitID);
+            })
+
+            socket.on('tracklog', function(data){
+                logFileName = logFileName || userID + '/' + visitID + '.log';
+                fs.appendFile(logFileName, JSON.stringify(data) + '\n', function(){});
+                console.log("tracklog:", "userID:", userID, "visitID:", visitID);
+            });
+
+            socket.on('disconnect', function(){
+                logFileName = logFileName || userID + '/' + visitID + '.log';
+                var data = {
+                    "eventName": 'disconnect',
+                    "userID": userID,
+                    "visitID": visitID,
+                    "data": {
+                        "timestamp": new Date()
+                    }
+                };
+                fs.appendFile(logFileName, JSON.stringify(data) + '\n', function(){});
+                console.log("disconnect:", "userID:", userID, "visitID:", visitID);
+            });
+
+            socket.on('error', function(reason){
+                console.log('Error:', reason, "userID:", userID, "visitID:", visitID);
+            });
+        });
+    }
 });
 
 //-------------------------------------------------------------------------------
