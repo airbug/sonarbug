@@ -1,0 +1,34 @@
+lib-cov
+*.seed
+*.log
+*.csv
+*.dat
+*.out
+*.pid
+*.gz
+
+pids
+logs
+results
+
+# node.js resources
+node_modules
+npm-debug.log
+
+# IntelliJ resources
+*.iml
+*.ipr
+*.iws
+
+#mac
+.DS_Store
+
+#buildbug
+.buildbug
+buildbug.json
+
+# package descriptions
+temp
+
+# config files
+config
