@@ -37,17 +37,21 @@ buildProperties({
     sonarbug: {
         packageJson: {
             name: "sonarbug",
-            version: "0.0.1",
+            version: "0.0.2",
             main: "./lib/SonarBug.js",
             dependencies: {
-                bugpack: "https://s3.amazonaws.com/airbug/bugpack-0.0.4.tgz",
+                "aws-sdk": "0.9.x",
+                "bugpack": "https://s3.amazonaws.com/airbug/bugpack-0.0.4.tgz",
                 "express": "3.1.x",
-                "socket.io": "0.9.x"
+                "fstream": '0.1.x',
+                "socket.io": "0.9.x",
+                "tar": 'git://github.com/airbug/node-tar.git#master'
             },
             scripts: {}
         },
         sourcePaths: [
             "./projects/sonarbug/js/src",
+            "../bugjs/projects/aws/js/src",
             "../bugjs/projects/bugjs/js/src",
             "../bugjs/projects/bugtrace/js/src",
             '../bugjs/projects/bugflow/js/src',
@@ -67,7 +71,7 @@ buildProperties({
     sonarbugclient: {
         packageJson: {
             name: "sonarbugclient",
-            version: "0.0.1",
+            version: "0.0.2",
             main: "./lib/SonarBugClient.js",
             dependencies: {
                 bugpack: "https://s3.amazonaws.com/airbug/bugpack-0.0.4.tgz"
