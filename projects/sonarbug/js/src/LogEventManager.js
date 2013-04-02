@@ -14,7 +14,7 @@
 // Common Modules
 //-------------------------------------------------------------------------------
 
-var bugpack     = require('bugpack').context(module);
+var bugpack         = require('bugpack').context(module);
 
 //-------------------------------------------------------------------------------
 // BugPack Modules

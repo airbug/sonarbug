@@ -354,6 +354,10 @@ var SonarBug = Class.extend(Obj, {
                     });
                 })
             ]),
+
+            //-------------------------------------------------------------------------------
+            // Move Directory Contents and Rotate Log Folders
+            //-------------------------------------------------------------------------------
             $task(function(flow){
                 BugFs.moveDirectoryContents(activeFoldersPath, _this.currentCompletedFolderPath, function(error){
                     flow.complete(error);
@@ -411,9 +415,9 @@ var SonarBug = Class.extend(Obj, {
                             // notify packAndUpload
                         } else {
                             console.log(error);
+                            // oldCompletedFolderLogEventManager = null;
+                            // notify packAndUpload
                         }
-                        // oldCompletedFolderLogEventManager = null;
-                        // notify packAndUpload
                     });
                 } else {
                     oldCompletedFolderLogEventManager.onceOn("ready-to-package", function(){
@@ -424,7 +428,6 @@ var SonarBug = Class.extend(Obj, {
                             } else {
                                 console.log(error);
                             }
-
                         });
                     });
                 }
