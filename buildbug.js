@@ -42,10 +42,12 @@ buildProperties({
             dependencies: {
                 "aws-sdk": "0.9.x",
                 "bugpack": "https://s3.amazonaws.com/airbug/bugpack-0.0.4.tgz",
+                "cron": "1.0.x",
                 "express": "3.1.x",
                 "fstream": '0.1.x',
                 "socket.io": "0.9.x",
-                "tar": 'git://github.com/airbug/node-tar.git#master'
+                "tar": 'git://github.com/airbug/node-tar.git#master',
+                "time": "0.9.x"
             },
             scripts: {}
         },
@@ -250,7 +252,7 @@ buildTarget('local').buildFlow(
                     properties: {
                         packageJson: buildProject.getProperty("splitbugserver.packageJson"),
                         sourcePaths: buildProject.getProperty("splitbugserver.sourcePaths"),
-                        scriptPaths: buildProject.getProperty("deploybugserver.scriptPaths"),
+                        scriptPaths: buildProject.getProperty("splitbugserver.scriptPaths"),
                         testPaths: buildProject.getProperty("splitbugserver.testPaths"),
                         binPaths: buildProject.getProperty("splitbugserver.binPaths")
                     }

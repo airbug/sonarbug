@@ -70,7 +70,7 @@ var SonarBug = Class.extend(Obj, {
          *  currentCompletedId: number
          * }}
          */
-        this.config = JSON.parse(BugFs.readFileSync(path.resolve(__dirname, '..', 'sonarbug.config.json'), 'utf-8'));
+        this.config = null;
 
         /**
          * @type {{}}
@@ -80,12 +80,12 @@ var SonarBug = Class.extend(Obj, {
         /**
          * @type {string}
          */
-        this.activeFoldersPath          = path.resolve(__dirname, '..', 'logs/', 'active/');
+        this.activeFoldersPath          = null;
 
         /**
          * @type {string}
          */
-        this.completedFoldersPath       = path.resolve(__dirname, '..', 'logs/', 'completed/');
+        this.completedFoldersPath       = null;
 
         /**
          * @type {number}
@@ -105,17 +105,45 @@ var SonarBug = Class.extend(Obj, {
         /**
          * @type {string}
          */
+        this.logsPath                   = null;
+
+        /**
+         * @type {string}
+         */
+        this.packagedFolderPath         = null;
+
+        /**
+         * @type {string}
+         */
+        this.toPackageFoldersPath       = null;
+    },
+
+    initialize: function(callback){
+        var _this = this;
+        var configFile = path.resolve(__dirname, '..', 'sonarbug.config.json');
+        var configDefault = {"currentCompletedId":100,"logRotationInterval":60000};
+
+        fs.exists(configFile, function(exists){
+            if(!exists){
+                console.log("sonarbug.config.json could not be found");
+                console.log("writing sonarbug.config.json file...");
+                _this.config = configDefault;
+                fs.writeFile(configFile, JSON.stringify(configDefault), function(){
+                    console.log("sonarbug.config.json written with defaults:", configDefault);
+                });
+            } else {
+                _this.config = JSON.parse(BugFs.readFileSync(path.resolve(__dirname, '..', 'sonarbug.config.json'), 'utf-8'));
+            }
+        });
+        this.activeFoldersPath          = path.resolve(__dirname, '..', 'logs/', 'active/');
+        this.completedFoldersPath       = path.resolve(__dirname, '..', 'logs/', 'completed/');
         this.logsPath                   = path.resolve(__dirname, '..', 'logs/');
-
-        /**
-         * @type {string}
-         */
         this.packagedFolderPath         = path.resolve(__dirname, '..', 'logs/', 'packaged/');
-
-        /**
-         * @type {string}
-         */
         this.toPackageFoldersPath       = path.resolve(__dirname, '..', 'logs/', 'toPackage/');
+
+        if(callback){
+            callback();
+        }
     },
 
     start: function(){
@@ -125,6 +153,16 @@ var SonarBug = Class.extend(Obj, {
         console.log("Starting SonarBug...");
 
         $series([
+            $task(function(flow){
+                _this.initialize(function(error){
+                    if(!error){
+                        console.log("Sonarbug initialized");
+                    } else {
+                        console.log("Sonarbug failed to initialize");
+                    }
+                    flow.complete(error);
+                })
+            }),
             $task(function(flow){
                 _this.initializeLogs(function(error){
                     if(!error){

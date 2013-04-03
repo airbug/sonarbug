@@ -9,6 +9,7 @@
 //@Require('aws.AwsConfig')
 //@Require('bugboil.BugBoil')
 //@Require('bugflow.BugFlow')
+//@Require('bugfs.BugFs')
 //@Require('Class')
 //@Require('Obj')
 //@Require('bugfs.Path')
@@ -34,6 +35,7 @@ var zlib        = require('zlib');
 var AwsConfig   = bugpack.require('aws.AwsConfig');
 var BugBoil     = bugpack.require('bugboil.BugBoil');
 var BugFlow     = bugpack.require('bugflow.BugFlow');
+var BugFs       = bugpack.require('bugfs.BugFs');
 var Class       = bugpack.require('Class');
 var Obj         = bugpack.require('Obj');
 var Path        = bugpack.require('bugfs.Path');
@@ -131,11 +133,11 @@ var PackageAndUploadManager = Class.extend(Obj, {
         this.package(directoryName, function(error, filePath){
             if(!error){
                 _this.upload(filePath, function(error){
-                    callback(error);
+                    callback(error, directoryName);
                 });
             } else {
                 console.log(error);
-                callback(error);
+                callback(error, directoryName);
             }
         });
     },
@@ -160,8 +162,14 @@ var PackageAndUploadManager = Class.extend(Obj, {
                 fs.readdir(directoryPath, function(error, directories){
                     if(!error){
                         $foreachParallel(directories, function(boil, directory){
-                            _this.packageAndUpload(directory, function(error){
-                                fs.rmdir(directory, function(){ // What happens to contents?
+                            _this.packageAndUpload(directory, function(error, directory){
+                                BugFs.deleteDirectory(path.resolve(directoryPath, directory), true, false, function(error){
+                                    if(!error){
+                                        console.log("Directory", directory, "successfully removed");
+                                    } else {
+                                        console.log("Failed to remove directory", directory);
+                                        console.log(error);
+                                    }
                                     boil.bubble(error);
                                 });
                             });
@@ -230,7 +238,7 @@ var PackageAndUploadManager = Class.extend(Obj, {
         var s3Bucket = new S3Bucket({
             name: props.bucket || props["local-bucket"]
         });
-        var options = props.options || {acl: 'public-read'};
+        var options = props.options || {acl: ''}; // Test this change
         var s3Api = new S3Api(awsConfig);
 
         $if (function(flow) {
