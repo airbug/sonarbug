@@ -75,7 +75,7 @@ var PackageAndUploadManager = Class.extend(Obj, {
      */
     _constructor: function(options){
         this.isBucketEnsured        = false;
-        this.props                  = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..') + '/buildbug.json'));
+        this.props                  = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..') + '/config.json'));
         this.packagedFolderPath     = path.resolve(__dirname, '..', 'logs/', 'packaged/');
         this.toPackageFoldersPath   = path.resolve(__dirname, '..', 'logs/', 'toPackage/');
         
