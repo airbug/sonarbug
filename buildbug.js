@@ -215,17 +215,17 @@ buildTarget('local').buildFlow(
                         packageVersion: buildProject.getProperty("sonarbug.packageJson.version")
                     }
                 }),
-                // targetTask('startNodeModuleTests', {
-                //     init: function(task, buildProject, properties) {
-                //         var packedNodePackage = nodejs.findPackedNodePackage(
-                //             buildProject.getProperty("sonarbug.packageJson.name"),
-                //             buildProject.getProperty("sonarbug.packageJson.version")
-                //         );
-                //         task.updateProperties({
-                //             modulePath: packedNodePackage.getFilePath()
-                //         });
-                //     }
-                // }),
+                targetTask('startNodeModuleTests', {
+                    init: function(task, buildProject, properties) {
+                        var packedNodePackage = nodejs.findPackedNodePackage(
+                            buildProject.getProperty("sonarbug.packageJson.name"),
+                            buildProject.getProperty("sonarbug.packageJson.version")
+                        );
+                        task.updateProperties({
+                            modulePath: packedNodePackage.getFilePath()
+                        });
+                    }
+                }),
                 targetTask("s3EnsureBucket", {
                     properties: {
                         bucket: buildProject.getProperty("local-bucket")
@@ -274,17 +274,17 @@ buildTarget('local').buildFlow(
                         packageVersion: buildProject.getProperty("splitbugserver.packageJson.version")
                     }
                 }),
-                // targetTask('startNodeModuleTests', {
-                //     init: function(task, buildProject, properties) {
-                //         var packedNodePackage = nodejs.findPackedNodePackage(
-                //             buildProject.getProperty("splitbugserver.packageJson.name"),
-                //             buildProject.getProperty("splitbugserver.packageJson.version")
-                //         );
-                //         task.updateProperties({
-                //             modulePath: packedNodePackage.getFilePath()
-                //         });
-                //     }
-                // }),
+                targetTask('startNodeModuleTests', {
+                    init: function(task, buildProject, properties) {
+                        var packedNodePackage = nodejs.findPackedNodePackage(
+                            buildProject.getProperty("splitbugserver.packageJson.name"),
+                            buildProject.getProperty("splitbugserver.packageJson.version")
+                        );
+                        task.updateProperties({
+                            modulePath: packedNodePackage.getFilePath()
+                        });
+                    }
+                }),
                 targetTask("s3EnsureBucket", {
                     properties: {
                         bucket: buildProject.getProperty("local-bucket")
@@ -333,17 +333,17 @@ buildTarget('local').buildFlow(
                         packageVersion: buildProject.getProperty("splitbugclient.packageJson.version")
                     }
                 }),
-                // targetTask('startNodeModuleTests', {
-                //     init: function(task, buildProject, properties) {
-                //         var packedNodePackage = nodejs.findPackedNodePackage(
-                //             buildProject.getProperty("splitbugclient.packageJson.name"),
-                //             buildProject.getProperty("splitbugclient.packageJson.version")
-                //         );
-                //         task.updateProperties({
-                //             modulePath: packedNodePackage.getFilePath()
-                //         });
-                //     }
-                // }),
+                targetTask('startNodeModuleTests', {
+                    init: function(task, buildProject, properties) {
+                        var packedNodePackage = nodejs.findPackedNodePackage(
+                            buildProject.getProperty("splitbugclient.packageJson.name"),
+                            buildProject.getProperty("splitbugclient.packageJson.version")
+                        );
+                        task.updateProperties({
+                            modulePath: packedNodePackage.getFilePath()
+                        });
+                    }
+                }),
                 targetTask("s3EnsureBucket", {
                     properties: {
                         bucket: buildProject.getProperty("local-bucket")
