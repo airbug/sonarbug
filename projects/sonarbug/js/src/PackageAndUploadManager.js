@@ -128,6 +128,10 @@ var PackageAndUploadManager = Class.extend(Obj, {
         })
     },
 
+    /**
+     * @param {string} directoryName
+     * @param {function(error, string)} callback
+     */
     packageAndUpload: function(directoryName, callback){        
         var _this = this;
         this.package(directoryName, function(error, filePath){
@@ -142,6 +146,9 @@ var PackageAndUploadManager = Class.extend(Obj, {
         });
     },
 
+    /**
+     * @param {function(error)} callback
+     */
     packageAndUploadEach: function(callback){        
         var _this = this;
         var directoryPath = this.toPackageFoldersPath;
@@ -168,7 +175,6 @@ var PackageAndUploadManager = Class.extend(Obj, {
                                         console.log("Directory", directory, "successfully removed");
                                     } else {
                                         console.log("Failed to remove directory", directory);
-                                        console.log(error);
                                     }
                                     boil.bubble(error);
                                 });
@@ -176,13 +182,11 @@ var PackageAndUploadManager = Class.extend(Obj, {
                         }).execute(function(error){
                             if(!error){
                                 console.log("Successfully packaged and uploaded each directory in", directoryPath);
-                            } else {
-                                console.log(error);
                             }
                             flow.complete(error);
                         });
                     } else {
-                        console.log(error);
+                        flow.error(error);
                     }
                 });
             })
@@ -194,10 +198,65 @@ var PackageAndUploadManager = Class.extend(Obj, {
     //     this.packageAndUpload(directoryName, callback);
     // },
 
+    /**
+     * @param {string} outputFilePath
+     * @param {function(error)} callback
+     */
     upload: function(outputFilePath, callback){
         this.s3PutFile(outputFilePath, function(error){
-            callback(error);
+            if(!error){
+                var newCallback = function(error){
+                    if(!error){
+                        console.log('File', outputFilePath, 'removed');
+                    }
+                    callback(error);
+                };
+                fs.unlink(outputFilePath, newCallback);
+            } else {
+                callback(error);
+            }
         });
+    },
+
+    /**
+     * @param {string} outputDirectoryPath
+     * @param {function(error)} callback
+     */
+    uploadEach: function(outputDirectoryPath, callback){
+        var _this = this;
+
+        $series([
+            $task(function(flow){
+                if(!_this.isBucketEnsured){
+                    _this.s3EnsureBucket(function(error){
+                        if(!error){
+                            _this.isBucketEnsured = true;
+                            console.log("Bucket Ensured");
+                        }
+                        flow.complete(error);
+                    });
+                }
+            }),
+            $task(function(flow){
+                fs.readdir(outputDirectoryPath, function(error, files){
+                    if(!error){
+                        $foreachParallel(files, function(boil, file){
+                            var outputFilePath = outputDirectoryPath + '/' + file;
+                            _this.upload(outputFilePath, function(error){
+                                boil.bubble(error);
+                            });
+                        }).execute(function(error){
+                            if(!error){
+                                console.log("Successfully uploaded each file in", outputDirectoryPath);
+                            }
+                            flow.complete(error);
+                        });
+                    } else {
+                        flow.error(error);
+                    }
+                });
+            })
+        ]).execute(callback);
     },
 
     //-------------------------------------------------------------------------------
@@ -265,7 +324,6 @@ var PackageAndUploadManager = Class.extend(Obj, {
        ).execute(callback);
    }
 });
-
 
 // -------------------------------------------------------------------------------
 // Exports

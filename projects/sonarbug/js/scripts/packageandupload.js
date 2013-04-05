@@ -22,21 +22,13 @@ var PackageAndUploadManager = bugpack.require('sonarbug.PackageAndUploadManager'
 //-------------------------------------------------------------------------------
 
 var packageAndUploadManager = new PackageAndUploadManager();
-var packageAndUploadJob = new cronJob({
-    cronTime: '00 */5 * * * *', //seconds minutes hours day-of-month months days-of-week
-    onTick: function() {
-        packageAndUploadManager.packageAndUploadEach(function(error){
-            if(!error){
-                console.log('Package and Upload Task Completed');
-            } else {
-                console.log(error);
-            }
-        });
-    },
-    start: false,
-    timeZone: "America/San_Francisco"
-    // ,context: // defaults to the cronjob itself
-    // ,onComplete: function(){}
-});
 
-packageAndUploadJob.stop();
+console.log('Executing packageandupload script');
+packageAndUploadManager.packageAndUploadEach(function(error){
+    if(!error){
+        console.log('Package and Upload Task Completed');
+    } else {
+        console.log('Package and Upload Task Failed');
+        console.log(error);
+    }
+});

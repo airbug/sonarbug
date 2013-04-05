@@ -11,32 +11,32 @@
 //@Require('Class')
 //@Require('Obj')
 //@Require('EventDispatcher')
-//@Require('bugfs.Path');
+//@Require('sonarbug.PackageAndUploadManager')
+//@Require('bugfs.Path')
 
 //-------------------------------------------------------------------------------
 // Common Modules
 //-------------------------------------------------------------------------------
 
-var bugpack     = require('bugpack').context(module);
-var fs          = require('fs');
-var http        = require('http');
-var path        = require('path');
-var io          = require('socket.io');
-var express     = require('express');
+var bugpack         = require('bugpack').context(module);
+var child_process   = require('child_process');
+var CronJob         = require('cron').CronJob;
+var express         = require('express');
+var fs              = require('fs');
+var http            = require('http');
+var io              = require('socket.io');
+var path            = require('path');
 
 //-------------------------------------------------------------------------------
 // BugPack Modules
 //-------------------------------------------------------------------------------
 
-var AwsConfig       = bugpack.require('aws.AwsConfig');
-var BugFlow         = bugpack.require('bugflow.BugFlow');
-var BugFs           = bugpack.require('bugfs.BugFs');
-var Class           = bugpack.require('Class');
-var LogEventManager = bugpack.require('sonarbug.LogEventManager');
-var Obj             = bugpack.require('Obj');
-var Path            = bugpack.require('bugfs.Path');
-var S3Api           = bugpack.require('aws.S3Api');
-var S3Bucket        = bugpack.require('aws.S3Bucket');
+var BugFlow                 = bugpack.require('bugflow.BugFlow');
+var BugFs                   = bugpack.require('bugfs.BugFs');
+var Class                   = bugpack.require('Class');
+var LogEventManager         = bugpack.require('sonarbug.LogEventManager');
+var Obj                     = bugpack.require('Obj');
+var PackageAndUploadManager = bugpack.require('sonarbug.PackageAndUploadManager');
 
 //-------------------------------------------------------------------------------
 // Simplify References
@@ -58,24 +58,39 @@ var SonarBug = Class.extend(Obj, {
         /**
          * @type {express()}
          */
-        this.app = null;
+        this.app                        = null;
 
         /**
          * @type {http.Server}
          */
-        this.server = null;
+        this.server                     = null;
 
         /**
          * @type {{
-         *  currentCompletedId: number
+         *  {
+         *    "currentCompletedId":571,
+         *    "logRotationInterval":60000, 
+         *    "cronJobs": {
+         *        "packageAndUpload": {
+         *            "cronTime": '00 *\/10 * * * *', //seconds minutes hours day-of-month months days-of-week (00 *\/10 * * * * is every ten minutes )
+         *            "start": false,
+         *            "timeZone": "America/San_Francisco"
+         *        }
+         *    }
+         * }
          * }}
          */
-        this.config = null;
+        this.config                     = null;
 
         /**
          * @type {{}}
          */
-        this.logEventManagers = {};
+        this.logEventManagers           = {};
+
+        /**
+         * @type {{}}
+         */
+        this.cronJobs                   = {};
 
         /**
          * @type {string}
@@ -118,10 +133,14 @@ var SonarBug = Class.extend(Obj, {
         this.toPackageFoldersPath       = null;
     },
 
+    /**
+     * @param {function()} callback
+     */
     initialize: function(callback){
-        var _this = this;
-        var configFile = path.resolve(__dirname, '..', 'sonarbug.config.json');
-        var configDefault = {"currentCompletedId":100,"logRotationInterval":60000};
+        var _this           = this;
+        var callback        = callback || function(){};
+        var configFile      = path.resolve(__dirname, '..', 'sonarbug.config.json');
+        var configDefault   = {"currentCompletedId":100,"logRotationInterval":60000};
 
         fs.exists(configFile, function(exists){
             if(!exists){
@@ -141,9 +160,7 @@ var SonarBug = Class.extend(Obj, {
         this.packagedFolderPath         = path.resolve(__dirname, '..', 'logs/', 'packaged/');
         this.toPackageFoldersPath       = path.resolve(__dirname, '..', 'logs/', 'toPackage/');
 
-        if(callback){
-            callback();
-        }
+        callback();
     },
 
     start: function(){
@@ -174,33 +191,44 @@ var SonarBug = Class.extend(Obj, {
                     }
                 });
             }),
-            $task(function(flow){
-                // Create Server
-                app = _this.app = express();
-                server = _this.server = http.createServer(app);
+            $parallel([
+                $task(function(flow){
+                    // Create Server
+                    app = _this.app = express();
+                    server = _this.server = http.createServer(app);
 
-                _this.configure(app, express, function(){
-                    console.log("SonarBug configured");
-                });
+                    _this.configure(app, express, function(){
+                        console.log("SonarBug configured");
+                    });
 
-                _this.enableSockets(server, function(){
-                    console.log("SonarBug sockets enabled");
-                });
+                    _this.enableSockets(server, function(){
+                        console.log("SonarBug sockets enabled");
+                    });
 
-                server.listen(app.get('port'), function(){
-                    console.log("SonarBug listening on port", app.get('port'));
-                });
+                    server.listen(app.get('port'), function(){
+                        console.log("SonarBug listening on port", app.get('port'));
+                    });
 
-                flow.complete();
+                    flow.complete();
 
-            }),
-            // Set interval for log rotations
-            $task(function(flow){
-                var config = _this.config;
-                setInterval(function(){
-                    _this.rotateLogs();
-                }, config.logRotationInterval);
-            })
+                }),
+                // Set interval for log rotations
+                $task(function(flow){
+                    var config = _this.config;
+                    setInterval(function(){
+                        _this.rotateLogs();
+                    }, config.logRotationInterval);
+                    flow.complete();
+                }),
+                $task(function(flow){
+                    _this.initializePackageAndUploadCronJob(function(){
+                        console.log('packageAndUploadCronJob initialized');
+                        _this.startPackageAndUploadCronJob(function(){
+                            flow.complete();
+                        });
+                    });
+                })
+            ])
         ]).execute(function(error){
             if(!error){
                 console.log("SonarBug successfully started");
@@ -240,9 +268,9 @@ var SonarBug = Class.extend(Obj, {
      * @param {http.Server} server
      */
     enableSockets: function(server){
-        var _this = this;
-        var activeFoldersPath = this.activeFoldersPath;
-        var ioManager = io.listen(server);
+        var _this               = this;
+        var activeFoldersPath   = this.activeFoldersPath;
+        var ioManager           = io.listen(server);
 
         ioManager.sockets.on('connection', function (socket) {
             console.log("Connection established")
@@ -317,7 +345,7 @@ var SonarBug = Class.extend(Obj, {
     },
 
     //-------------------------------------------------------------------------------
-    //
+    // Logs
     //-------------------------------------------------------------------------------
 
     /**
@@ -327,9 +355,10 @@ var SonarBug = Class.extend(Obj, {
         var _this                   = this;
         var config                  = this.config;
         var logsPath                = this.logsPath;
-        var toPackageFoldersPath    = this.toPackageFoldersPath;
-        var completedFoldersPath    = this.completedFoldersPath;
         var activeFoldersPath       = this.activeFoldersPath;
+        var completedFoldersPath    = this.completedFoldersPath;
+        var packagedFolderPath      = this.packagedFolderPath;
+        var toPackageFoldersPath    = this.toPackageFoldersPath;
 
         $series([
             $parallel([
@@ -390,6 +419,17 @@ var SonarBug = Class.extend(Obj, {
                             flow.complete();
                         }
                     });
+                }),
+                $task(function(flow){
+                    fs.exists(packagedFolderPath, function(exists){
+                        if(!exists){
+                            fs.mkdir(packagedFolderPath, 0777, function(error){
+                                flow.complete(error);
+                            });
+                        } else {
+                            flow.complete();
+                        }
+                    });
                 })
             ]),
 
@@ -402,13 +442,25 @@ var SonarBug = Class.extend(Obj, {
                 });
             }),
             $task(function(flow){
+                var packageAndUploadManager = new PackageAndUploadManager();
+                packageAndUploadManager.uploadEach(_this.packagedFolderPath, function(error){
+                    packageAndUploadManager = null;
+                    if(!error){
+                        console.log('Packaged log files uploaded and removed');
+                        flow.complete();
+                    } else{
+                        flow.error(error);
+                    }
+                });
+            }),
+            $task(function(flow){
                 BugFs.moveDirectoryContents(completedFoldersPath, toPackageFoldersPath, function(error){
-                    if(error){
-                        flow.complete(error); // error or complete?
-                    } else {
+                    if(!error){
                         _this.rotateLogs(function(error){
                             flow.complete(error);
                         });
+                    } else {
+                        flow.error(error);
                     }
                 });
 
@@ -449,20 +501,16 @@ var SonarBug = Class.extend(Obj, {
                 } else if (oldCompletedFolderLogEventManager.getMoveCount() === 0){
                     BugFs.moveDirectory(oldCompletedFolderPath, toPackageFoldersPath, function(error){
                         if(!error){
-                            // oldCompletedFolderLogEventManager = null;
-                            // notify packAndUpload
+                            delete _this.logEventManagers[oldCompletedFolderName];
                         } else {
                             console.log(error);
-                            // oldCompletedFolderLogEventManager = null;
-                            // notify packAndUpload
                         }
                     });
                 } else {
                     oldCompletedFolderLogEventManager.onceOn("ready-to-package", function(){
                         BugFs.moveDirectory(oldCompletedFolderPath, toPackageFoldersPath, function(error){
                             if(!error){
-                                // oldCompletedFolderLogEventManager = null;
-                                // notify packAndUpload
+                                delete _this.logEventManagers[oldCompletedFolderName];
                             } else {
                                 console.log(error);
                             }
@@ -477,8 +525,93 @@ var SonarBug = Class.extend(Obj, {
         });
     },
 
+    /**
+     * @param {number} interval
+     */
     setLogRotationInterval: function(interval){
         this.config.logRotationInterval = interval;
+        console.log('Log rotation interval set to', interval);
+    },
+
+
+    //-------------------------------------------------------------------------------
+    // CronJobs
+    //-------------------------------------------------------------------------------
+
+    /**
+     * @param {function()=} callback
+     */
+    initializePackageAndUploadCronJob: function(callback){
+        var callback = callback || function(){};
+        var configOverrides = this.config.cronJobs.packageAndUpload;
+        var config = {
+            cronTime: '00 */5 * * * *',
+            start: false,
+            timeZone: "America/San_Francisco"
+            // , context:
+            // , onComplete: function(){}
+        };
+
+        if(configOverrides){
+            for(var prop in configOverrides){
+                config[prop] = configOverrides[prop];
+            }
+        }
+
+        console.log('packageAndUploadCronJob settings:', config);
+
+        config.onTick = function(){
+            var options = {
+                cwd: path.resolve(__dirname, '..', 'scripts/')
+            };
+            child_process.exec('node packageandupload.js', options, function(error, stdout, stderr){
+                console.log('stdout: ', stdout);
+                console.log('stderr: ', stderr);
+                if (error) {
+                  console.log('exec error: ', error);
+                }
+            });
+        };
+        var job = new CronJob(config);
+        this.cronJobs.packageAndUpload = job;
+
+        callback();
+    },
+
+    /**
+     * @param {function()=} callback
+     */
+    startPackageAndUploadCronJob: function(callback){
+        var callback = callback || function(){};
+        var job = this.cronJobs.packageAndUpload;
+        if(job){
+            job.start();
+            console.log("packageAndUploadCronJob started");
+        } else {
+            console.log("packageAndUploadCronJob does not exist \n Please initialize cron job first");
+        }
+
+        callback();
+    },
+
+    /**
+     * @param {function()=} callback
+     */
+    stopPackageAndUploadCronJob: function(callback){
+        var callback = callback || function(){};
+        var job = this.cronJobs.packageAndUpload;
+        if(job){
+            if(job.running){
+                job.stop();
+                console.log("packageAndUploadCronJob stopped");
+            } else {
+                console.log("packageAndUploadCronJob is not running");
+            }
+        } else {
+            console.log("packageAndUploadCronJob does not exist \n Please configure cron job first");
+        }
+
+        callback();
     }
 });
 
