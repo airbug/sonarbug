@@ -41,7 +41,7 @@ buildProperties({
             main: "./lib/SonarBug.js",
             dependencies: {
                 "aws-sdk": "0.9.x",
-                "bugpack": "https://s3.amazonaws.com/airbug/bugpack-0.0.4.tgz",
+                "bugpack": "https://s3.amazonaws.com/airbug/bugpack-0.0.5.tgz",
                 "cron": "1.0.x",
                 "express": "3.1.x",
                 "fstream": '0.1.x',
@@ -76,7 +76,7 @@ buildProperties({
             version: "0.0.2",
             main: "./lib/SonarBugClient.js",
             dependencies: {
-                bugpack: "https://s3.amazonaws.com/airbug/bugpack-0.0.4.tgz"
+                bugpack: "https://s3.amazonaws.com/airbug/bugpack-0.0.5.tgz"
             },
             scripts: {}
         },
@@ -104,20 +104,28 @@ buildProperties({
             version: "0.0.1",
             main: "./lib/SplitBugServer.js",
             dependencies: {
-                bugpack: "https://s3.amazonaws.com/airbug/bugpack-0.0.4.tgz",
+                bugpack: "https://s3.amazonaws.com/airbug/bugpack-0.0.5.tgz",
                 "express": "3.1.x",
-                "socket.io": "0.9.x"
+                "riak-js": "0.9.x",
+                "cron": "1.0.x"
             },
-            scripts: {}
+            scripts: {
+                "start": "node ./scripts/splitbug-server-start.js"
+            }
         },
+        resourcePaths: [
+            "./projects/splitbugserver/resources"
+        ],
         sourcePaths: [
+            "./projects/splitbug/js/src",
             "./projects/splitbugserver/js/src",
+            "../bugjs/projects/annotate/js/src",
+            "../bugjs/projects/bugboil/js/src",
+            "../bugjs/projects/bugflow/js/src",
+            "../bugjs/projects/bugfs/js/src",
             "../bugjs/projects/bugjs/js/src",
             "../bugjs/projects/bugtrace/js/src",
-            '../bugjs/projects/bugflow/js/src',
-            '../bugjs/projects/bugboil/js/src',
-            "../bugjs/projects/bugfs/js/src",
-            "../bugjs/projects/annotate/js/src",
+            "../bugjs/projects/riak/js/src",
             "../bugunit/projects/bugunit/js/src"
         ],
         scriptPaths: [
@@ -132,14 +140,14 @@ buildProperties({
         packageJson: {
             name: "splitbugclient",
             version: "0.0.1",
-            main: "./lib/SplitBugClient.js",
+            main: "./lib/SplitBug.js",
             dependencies: {
-                bugpack: "https://s3.amazonaws.com/airbug/bugpack-0.0.3.tgz",
+                bugpack: "https://s3.amazonaws.com/airbug/bugpack-0.0.5.tgz",
                 "socket.io-client": "0.9.x"
-            },
-            scripts: {}
+            }
         },
         sourcePaths: [
+            "./projects/splitbug/js/src",
             "./projects/splitbugclient/js/src",
             "../bugjs/projects/bugjs/js/src",
             "../bugjs/projects/bugtrace/js/src",
@@ -150,7 +158,6 @@ buildProperties({
             "../bugunit/projects/bugunit/js/src"
         ],
         scriptPaths: [
-            "./projects/splitbugclient/js/scripts",
             "../bugunit/projects/bugunit/js/scripts"
         ],
         testPaths: [
@@ -251,6 +258,7 @@ buildTarget('local').buildFlow(
                 targetTask('createNodePackage', {
                     properties: {
                         packageJson: buildProject.getProperty("splitbugserver.packageJson"),
+                        resourcePaths: buildProject.getProperty("splitbugserver.resourcePaths"),
                         sourcePaths: buildProject.getProperty("splitbugserver.sourcePaths"),
                         scriptPaths: buildProject.getProperty("splitbugserver.scriptPaths"),
                         testPaths: buildProject.getProperty("splitbugserver.testPaths"),

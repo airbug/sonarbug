@@ -1,18 +1,17 @@
 //-------------------------------------------------------------------------------
-// Requires
+// Annotations
 //-------------------------------------------------------------------------------
 
 //@Package('sonarbug')
 
 //@Export('SonarBug')
 
-//@Require('bugflow.BugFlow')
-//@Require('bugfs.BugFs')
 //@Require('Class')
 //@Require('Obj')
 //@Require('EventDispatcher')
 //@Require('sonarbug.PackageAndUploadManager')
 //@Require('bugfs.Path')
+
 
 //-------------------------------------------------------------------------------
 // Common Modules
@@ -27,6 +26,7 @@ var http            = require('http');
 var io              = require('socket.io');
 var path            = require('path');
 
+
 //-------------------------------------------------------------------------------
 // BugPack Modules
 //-------------------------------------------------------------------------------
@@ -37,6 +37,7 @@ var Class                   = bugpack.require('Class');
 var LogEventManager         = bugpack.require('sonarbug.LogEventManager');
 var Obj                     = bugpack.require('Obj');
 var PackageAndUploadManager = bugpack.require('sonarbug.PackageAndUploadManager');
+
 
 //-------------------------------------------------------------------------------
 // Simplify References
@@ -52,6 +53,11 @@ var $task               = BugFlow.$task;
 //-------------------------------------------------------------------------------
 
 var SonarBug = Class.extend(Obj, {
+
+    //-------------------------------------------------------------------------------
+    // Constructor
+    //-------------------------------------------------------------------------------
+
     _constructor: function(){
         this._super();
 
@@ -162,6 +168,11 @@ var SonarBug = Class.extend(Obj, {
 
         callback();
     },
+
+
+    //-------------------------------------------------------------------------------
+    // Class Methods
+    //-------------------------------------------------------------------------------
 
     start: function(){
         var _this = this;
@@ -614,6 +625,7 @@ var SonarBug = Class.extend(Obj, {
         callback();
     }
 });
+
 
 //-------------------------------------------------------------------------------
 // Exports

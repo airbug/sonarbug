@@ -1,0 +1,8 @@
+{
+    "splitTests": [
+        {
+            "name": "alternate-tag-line",
+            "description": "This test is designed to measure the effect of an alternate tag line for airbug. We have changed the text 'Unite and motivate your team's cross-platform collaboration.' to 'Collaborative chat for developers'. If this test is successful, we will see a greater percentage of beta sign-up goals in the test group compared to the control group."
+        }
+    ]
+}
