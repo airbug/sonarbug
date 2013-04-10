@@ -146,20 +146,20 @@ var SonarBug = Class.extend(Obj, {
         var _this           = this;
         var callback        = callback || function(){};
         var configFile      = path.resolve(__dirname, '..', 'sonarbug.config.json');
-        var configDefault   = {"currentCompletedId":100,"logRotationInterval":60000};
+        var configDefault   = {"currentCompletedId":100,"logRotationInterval":3600000};
 
-        fs.exists(configFile, function(exists){
-            if(!exists){
-                console.log("sonarbug.config.json could not be found");
-                console.log("writing sonarbug.config.json file...");
-                _this.config = configDefault;
-                fs.writeFile(configFile, JSON.stringify(configDefault), function(){
-                    console.log("sonarbug.config.json written with defaults:", configDefault);
-                });
-            } else {
-                _this.config = JSON.parse(BugFs.readFileSync(path.resolve(__dirname, '..', 'sonarbug.config.json'), 'utf-8'));
-            }
-        });
+        if(fs.existsSync(configFile)){
+            _this.config = JSON.parse(BugFs.readFileSync(configFile, 'utf-8'));
+            console.log('sonarbug.config.json read in');
+        } else {
+            console.log("sonarbug.config.json could not be found");
+            console.log("writing sonarbug.config.json file...");
+            _this.config = configDefault;
+            fs.writeFile(configFile, JSON.stringify(configDefault), function(){
+                console.log("sonarbug.config.json written with defaults:", configDefault);
+            });
+        }
+
         this.activeFoldersPath          = path.resolve(__dirname, '..', 'logs/', 'active/');
         this.completedFoldersPath       = path.resolve(__dirname, '..', 'logs/', 'completed/');
         this.logsPath                   = path.resolve(__dirname, '..', 'logs/');
@@ -283,6 +283,7 @@ var SonarBug = Class.extend(Obj, {
         var activeFoldersPath   = this.activeFoldersPath;
         var ioManager           = io.listen(server);
 
+        ioManager.of('/api');
         ioManager.sockets.on('connection', function (socket) {
             console.log("Connection established")
             var userID;
@@ -556,9 +557,9 @@ var SonarBug = Class.extend(Obj, {
         var callback = callback || function(){};
         var configOverrides = this.config.cronJobs.packageAndUpload;
         var config = {
-            cronTime: '00 */5 * * * *',
+            cronTime: '00 15 */1 * * *',
             start: false,
-            timeZone: "America/San_Francisco"
+            timeZone: "America/Los_Angeles"
             // , context:
             // , onComplete: function(){}
         };
