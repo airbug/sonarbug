@@ -283,7 +283,8 @@ var SonarBug = Class.extend(Obj, {
         var activeFoldersPath   = this.activeFoldersPath;
         var ioManager           = io.listen(server);
 
-        ioManager.of('/api');
+        ioManager.set('match origin protocol', true); //NOTE: Only necessary for use with wss
+        ioManager.of('/socketApi');
         ioManager.sockets.on('connection', function (socket) {
             console.log("Connection established")
             var userID;
@@ -318,9 +319,8 @@ var SonarBug = Class.extend(Obj, {
                     eventName: 'disconnect',
                     userID: userID,
                     visitID: visitID,
-                    data: {
-                        timestamp: new Date()
-                    }
+                    timestamp: new Date(),
+                    data: null
                 };
 
                 console.log("disconnect:", "userID:", userID, "visitID:", visitID);
