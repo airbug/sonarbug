@@ -8,9 +8,10 @@
 
 //@Require('Class')
 //@Require('Obj')
-//@Require('TypeUtil')
+//@Require('Queue')
 //@Require('splitbug.Cookies')
 //@Require('splitbug.SplitBugClient')
+//@Require('splitbug.SplitTestRunner'')
 //@Require('splitbug.SplitTestSession')
 //@Require('splitbug.SplitTestUser')
 
@@ -28,9 +29,10 @@ var bugpack = require('bugpack').context();
 
 var Class =             bugpack.require('Class');
 var Obj =               bugpack.require('Obj');
-var TypeUtil =          bugpack.require('TypeUtil');
+var Queue =             bugpack.require('Queue');
 var Cookies =           bugpack.require('splitbug.Cookies');
 var SplitBugClient =    bugpack.require('splitbug.SplitBugClient');
+var SplitTestRunner =   bugpack.require('splitbug.SplitTestRunner');
 var SplitTestSession =  bugpack.require('splitbug.SplitTestSession');
 var SplitTestUser =     bugpack.require('splitbug.SplitTestUser');
 
@@ -56,9 +58,21 @@ var SplitBug = Class.extend(Obj, {
 
         /**
          * @private
+         * @type {Boolean}
+         */
+        this.configureStarted = false;
+
+        /**
+         * @private
          * @type {boolean}
          */
         this.configured = false;
+
+        /**
+         * @private
+         * @type {Queue.<SplitTestRunner>}
+         */
+        this.splitTestRunnerQueue = new Queue();
 
         /**
          * @private
@@ -98,38 +112,36 @@ var SplitBug = Class.extend(Obj, {
      * @param {function(error)} callback
      */
     configure: function(params, callback) {
+
+        //TODO BRN: We should add a feature where the splitbug configuration can be injected via a server side api that is placed on the customer's server
+
         var _this = this;
         if (!this.configured) {
-            this.configured = true;
-            var clientConfig = {
-                port: params.port || 8080,
-                host: params.host || "http://localhost"
-            };
-            this.splitBugClient = new SplitBugClient(clientConfig);
-            this.setupSplitTestUser(function(error) {
-                //TEST
-                console.log("Setup of split test user complete");
-                console.log(_this.splitTestUser);
-
-                if (!error) {
-                    _this.setupSplitTestSession(callback);
-                } else {
-                    callback(error);
-                }
-            });
+            if(!this.configureStarted) {
+                this.configureStarted = true;
+                var clientConfig = {
+                    port: params.port || 8080,
+                    host: params.host || "http://localhost"
+                };
+                this.splitBugClient = new SplitBugClient(clientConfig);
+                this.setupSplitTestUser(function(error) {
+                    if (!error) {
+                        _this.setupSplitTestSession(function(error) {
+                            _this.configured = true;
+                            _this.processQueuedSplitTestRunners();
+                            callback(error);
+                        });
+                    } else {
+                        _this.configured = true;
+                        _this.processQueuedSplitTestRunners();
+                        callback(error);
+                    }
+                });
+            } else {
+                callback(new Error("splitbug in the middle of configuring"));
+            }
         } else {
-            callback(new Error("Cannot configure splitbug more than once"));
-        }
-    },
-
-    /**
-     * @return {boolean}
-     */
-    targetedForTest: function() {
-        if (this.splitTestSession) {
-            return this.splitTestSession.getTestName() !== null;
-        } else {
-            return false;
+            callback(new Error("splitbug already configured"));
         }
     },
 
@@ -141,27 +153,14 @@ var SplitBug = Class.extend(Obj, {
      * }} params
      */
     splitTest: function(params) {
-        if (!params) {
-            throw new Error("params object is required");
-        }
-        if (!TypeUtil.isString(params.name)) {
-            throw new Error("params.name must be a string");
-        }
-        if (!TypeUtil.isFunction(params.controlFunction)) {
-            throw new Error("params.controlFunction must be a function");
-        }
-        if (!TypeUtil.isFunction(params.testFunction)) {
-            throw new Error("params.testFunction must be a function");
-        }
-        if (this.targetedForTest() && this.splitTestSession.getTestName() === params.name) {
-            //TODO BRN: Report to sonarbug that we are about to run the test
-            if (this.splitTestSession.getTestGroup() === "test") {
-                params.testFunction();
-            } else {
-                params.controlFunction();
-            }
+
+        //TODO BRN: We should be using the BugMarshaller to convert the params to a SplitTestRunner
+
+        var splitTestRunner = new SplitTestRunner(params);
+        if (this.configured) {
+            splitTestRunner.run(this.splitTestSession);
         } else {
-            params.controlFunction();
+            this.splitTestRunnerQueue.enqueue(splitTestRunner);
         }
     },
 
@@ -180,6 +179,7 @@ var SplitBug = Class.extend(Obj, {
             href: encodeURIComponent(window.location.href),
             userAgent: navigator.userAgent
         };
+        //TODO BRN: We should use the BugMarshaller to convert the splitTestSessionObject to a SplitTestSession. This should be done within the client instead of having to do this here.
         this.splitBugClient.establishSplitTestSession(splitTestUser.getUserUuid(), data, function(error, splitTestSessionObject) {
             if (!error) {
                 callback(null, new SplitTestSession(splitTestSessionObject));
@@ -194,6 +194,8 @@ var SplitBug = Class.extend(Obj, {
      * @param {function(Error, SplitTestUser)} callback
      */
     generateSplitTestUser: function(callback) {
+        //TODO BRN: We should use the BugMarshaller to convert the splitTestUserObject to a SplitTestUser. This should be done within the client instead of having to do this here.
+
         this.splitBugClient.generateSplitTestUser(function(error, splitTestUserObject) {
             if (!error) {
                 callback(null, new SplitTestUser(splitTestUserObject));
@@ -201,6 +203,16 @@ var SplitBug = Class.extend(Obj, {
                 callback(error);
             }
         });
+    },
+
+    /**
+     * @private
+     */
+    processQueuedSplitTestRunners: function() {
+        while (!this.splitTestRunnerQueue.isEmpty()) {
+            var splitTestRunner = this.splitTestRunnerQueue.dequeue();
+            splitTestRunner.run(this.splitTestSession);
+        }
     },
 
     /**

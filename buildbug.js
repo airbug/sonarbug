@@ -129,7 +129,7 @@ buildProperties({
             "../bugunit/projects/bugunit/js/src"
         ],
         scriptPaths: [
-            "./projects/splitbug/js/scripts",
+            "./projects/splitbugserver/js/scripts",
             "../bugunit/projects/bugunit/js/scripts"
         ],
         testPaths: [
@@ -312,65 +312,6 @@ buildTarget('local').buildFlow(
                         bucket: buildProject.getProperty("local-bucket")
                     }
                 })
-            ]),
-            series([
-                targetTask('createNodePackage', {
-                    properties: {
-                        packageJson: buildProject.getProperty("splitbugclient.packageJson"),
-                        sourcePaths: buildProject.getProperty("splitbugclient.sourcePaths"),
-                        scriptPaths: buildProject.getProperty("splitbugclient.scriptPaths"),
-                        testPaths: buildProject.getProperty("splitbugclient.testPaths"),
-                        binPaths: buildProject.getProperty("splitbugclient.binPaths")
-                    }
-                }),
-                targetTask('generateBugPackRegistry', {
-                    init: function(task, buildProject, properties) {
-                        var nodePackage = nodejs.findNodePackage(
-                            buildProject.getProperty("splitbugclient.packageJson.name"),
-                            buildProject.getProperty("splitbugclient.packageJson.version")
-                        );
-                        task.updateProperties({
-                            sourceRoot: nodePackage.getBuildPath()
-                        });
-                    }
-                }),
-                targetTask('packNodePackage', {
-                    properties: {
-                        packageName: buildProject.getProperty("splitbugclient.packageJson.name"),
-                        packageVersion: buildProject.getProperty("splitbugclient.packageJson.version")
-                    }
-                }),
-                targetTask('startNodeModuleTests', {
-                    init: function(task, buildProject, properties) {
-                        var packedNodePackage = nodejs.findPackedNodePackage(
-                            buildProject.getProperty("splitbugclient.packageJson.name"),
-                            buildProject.getProperty("splitbugclient.packageJson.version")
-                        );
-                        task.updateProperties({
-                            modulePath: packedNodePackage.getFilePath()
-                        });
-                    }
-                }),
-                targetTask("s3EnsureBucket", {
-                    properties: {
-                        bucket: buildProject.getProperty("local-bucket")
-                    }
-                }),
-                targetTask("s3PutFile", {
-                    init: function(task, buildProject, properties) {
-                        var packedNodePackage = nodejs.findPackedNodePackage(buildProject.getProperty("splitbugclient.packageJson.name"),
-                            buildProject.getProperty("splitbugclient.packageJson.version"));
-                        task.updateProperties({
-                            file: packedNodePackage.getFilePath(),
-                            options: {
-                                acl: 'public-read'
-                            }
-                        });
-                    },
-                    properties: {
-                        bucket: buildProject.getProperty("local-bucket")
-                    }
-                })
             ])
         ])
     ])
@@ -494,65 +435,6 @@ buildTarget('prod').buildFlow(
                     init: function(task, buildProject, properties) {
                         var packedNodePackage = nodejs.findPackedNodePackage(buildProject.getProperty("splitbug.packageJson.name"),
                             buildProject.getProperty("splitbug.packageJson.version"));
-                        task.updateProperties({
-                            file: packedNodePackage.getFilePath(),
-                            options: {
-                                acl: 'public-read'
-                            }
-                        });
-                    },
-                    properties: {
-                        bucket: "airbug"
-                    }
-                })
-            ]),
-            series([
-                targetTask('createNodePackage', {
-                    properties: {
-                        packageJson: buildProject.getProperty("splitbugclient.packageJson"),
-                        sourcePaths: buildProject.getProperty("splitbugclient.sourcePaths"),
-                        scriptPaths: buildProject.getProperty("splitbugclient.scriptPaths"),
-                        testPaths: buildProject.getProperty("splitbugclient.testPaths"),
-                        binPaths: buildProject.getProperty("splitbugclient.binPaths")
-                    }
-                }),
-                targetTask('generateBugPackRegistry', {
-                    init: function(task, buildProject, properties) {
-                        var nodePackage = nodejs.findNodePackage(
-                            buildProject.getProperty("splitbugclient.packageJson.name"),
-                            buildProject.getProperty("splitbugclient.packageJson.version")
-                        );
-                        task.updateProperties({
-                            sourceRoot: nodePackage.getBuildPath()
-                        });
-                    }
-                }),
-                targetTask('packNodePackage', {
-                    properties: {
-                        packageName: buildProject.getProperty("splitbugclient.packageJson.name"),
-                        packageVersion: buildProject.getProperty("splitbugclient.packageJson.version")
-                    }
-                }),
-                targetTask('startNodeModuleTests', {
-                    init: function(task, buildProject, properties) {
-                        var packedNodePackage = nodejs.findPackedNodePackage(
-                            buildProject.getProperty("splitbugclient.packageJson.name"),
-                            buildProject.getProperty("splitbugclient.packageJson.version")
-                        );
-                        task.updateProperties({
-                            modulePath: packedNodePackage.getFilePath()
-                        });
-                    }
-                }),
-                targetTask("s3EnsureBucket", {
-                    properties: {
-                        bucket: "airbug"
-                    }
-                }),
-                targetTask("s3PutFile", {
-                    init: function(task, buildProject, properties) {
-                        var packedNodePackage = nodejs.findPackedNodePackage(buildProject.getProperty("splitbugclient.packageJson.name"),
-                            buildProject.getProperty("splitbugclient.packageJson.version"));
                         task.updateProperties({
                             file: packedNodePackage.getFilePath(),
                             options: {
