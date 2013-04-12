@@ -21,7 +21,7 @@
 // -------------------------------------------------------------------------------
 
 var AWS         = require('aws-sdk');
-var bugpack     = require('bugpack').context(module);
+var bugpack     = require('bugpack').context();
 var fs          = require('fs');
 var fstream     = require("fstream");
 var path        = require("path");
@@ -56,6 +56,17 @@ var $task               = BugFlow.$task;
 
 var PackageAndUploadManager = Class.extend(Obj, {
     
+    _constructor: function(){
+        this.isBucketEnsured        = null;
+        this.props                  = null;
+        this.packagedFolderPath     = null;
+        this.toPackageFoldersPath   = null;
+    },
+
+    // -------------------------------------------------------------------------------
+    // Public Static Methods
+    // -------------------------------------------------------------------------------
+
     /**
      * @param {{
      *  props: {
@@ -72,29 +83,49 @@ var PackageAndUploadManager = Class.extend(Obj, {
      *  packagedFolderPath: string
      *  toPackageFoldersPath: string,
      * }=} options
+     * @param {function(error)} callback
      */
-    _constructor: function(options){
-        this.isBucketEnsured        = false;
-        this.props                  = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..') + '/config.json'));
-        this.packagedFolderPath     = path.resolve(__dirname, '..', 'logs/', 'packaged/');
-        this.toPackageFoldersPath   = path.resolve(__dirname, '..', 'logs/', 'toPackage/');
-        
-        //TODO: allow for overriding of defaults using the options param
-        //TODO: ensureBucket as part of initialization
-        
-        $task(function(flow){
-            _this.s3EnsureBucket(function(error){ 
-                flow.complete(error);
-            });
-        }).execute(function(error){
-            
+    initialize: function(options, callback){
+        console.log('PackageAndUploadManager initializing...');
+        var _this = this;
+        if(typeof options === 'function'){
+            var callback = options;
+            var options = null;
+        }
+        callback = callback || function(){};
+
+        $series([
+            $task(function(flow){
+                // Defaults
+                _this.isBucketEnsured        = false;
+                _this.props                  = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..') + '/config.json'));
+                _this.packagedFolderPath     = path.resolve(__dirname, '..', 'logs/', 'packaged/');
+                _this.toPackageFoldersPath   = path.resolve(__dirname, '..', 'logs/', 'toPackage/');
+
+                // Manual Overrides
+                if(options){
+                    for(var prop in options){
+                        _this[prop] = options[prop];
+                    }
+                }
+
+                flow.complete();
+            }),
+            // Synchronize ensure bucket function
+            $task(function(flow){
+                _this.s3EnsureBucket(function(error){
+                    flow.complete(error);
+                });
+            })
+        ]).execute(function(error){
+            if(!error){
+                console.log('PackageAndUploadManager successfully initialized');
+            } else {
+                console.log('PackageAndUploadManager failed to initialize');
+            }
+            callback(error);
         });
-
     },
-
-    // -------------------------------------------------------------------------------
-    // Public Static Methods
-    // -------------------------------------------------------------------------------
 
      /**
       * @param {string=} directoryName
@@ -192,11 +223,6 @@ var PackageAndUploadManager = Class.extend(Obj, {
             })
         ]).execute(callback);
     },
-
-    // packageAndUploadAll: function(callback){
-    //     var directoryName = "batch";
-    //     this.packageAndUpload(directoryName, callback);
-    // },
 
     /**
      * @param {string} outputFilePath

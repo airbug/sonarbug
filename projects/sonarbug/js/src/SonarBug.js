@@ -91,12 +91,12 @@ var SonarBug = Class.extend(Obj, {
         /**
          * @type {{}}
          */
-        this.logEventManagers           = {};
+        this.logEventManagers           = null;
 
         /**
          * @type {{}}
          */
-        this.cronJobs                   = {};
+        this.cronJobs                   = null;
 
         /**
          * @type {string}
@@ -160,6 +160,8 @@ var SonarBug = Class.extend(Obj, {
             });
         }
 
+        this.logEventManagers           = {};
+        this.cronJobs                   = {};
         this.activeFoldersPath          = path.resolve(__dirname, '..', 'logs/', 'active/');
         this.completedFoldersPath       = path.resolve(__dirname, '..', 'logs/', 'completed/');
         this.logsPath                   = path.resolve(__dirname, '..', 'logs/');
@@ -283,7 +285,7 @@ var SonarBug = Class.extend(Obj, {
         var activeFoldersPath   = this.activeFoldersPath;
         var ioManager           = io.listen(server);
 
-        ioManager.set('match origin protocol', true); //NOTE: Only necessary for use with wss
+        ioManager.set('match origin protocol', true); //NOTE: Only necessary for use with wss, WebSocket Secure protocol
         ioManager.of('/socketApi');
         ioManager.sockets.on('connection', function (socket) {
             console.log("Connection established")
@@ -455,12 +457,18 @@ var SonarBug = Class.extend(Obj, {
             }),
             $task(function(flow){
                 var packageAndUploadManager = new PackageAndUploadManager();
-                packageAndUploadManager.uploadEach(_this.packagedFolderPath, function(error){
-                    packageAndUploadManager = null;
+                packageAndUploadManager.initialize(function(error){
                     if(!error){
-                        console.log('Packaged log files uploaded and removed');
-                        flow.complete();
-                    } else{
+                        packageAndUploadManager.uploadEach(_this.packagedFolderPath, function(error){
+                            packageAndUploadManager = null;
+                            if(!error){
+                                console.log('Packaged log files uploaded and removed');
+                                flow.complete();
+                            } else{
+                                flow.error(error);
+                            }
+                        });
+                    } else {
                         flow.error(error);
                     }
                 });

@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------
-// Requires
+// Annotations
 //-------------------------------------------------------------------------------
 
 //@Require('sonarbug.PackageAndUploadManager')
@@ -18,17 +18,26 @@ var cronJob = require('cron').CronJob;
 var PackageAndUploadManager = bugpack.require('sonarbug.PackageAndUploadManager');
 
 //-------------------------------------------------------------------------------
-// 
+// Script Body
 //-------------------------------------------------------------------------------
 
 var packageAndUploadManager = new PackageAndUploadManager();
 
 console.log('Executing packageandupload script');
-packageAndUploadManager.packageAndUploadEach(function(error){
+
+packageAndUploadManager.initialize(function(error){
     if(!error){
-        console.log('Package and Upload Task Completed');
+        console.log('packageAndUploadManager initialized');
+        packageAndUploadManager.packageAndUploadEach(function(error){
+            if(!error){
+                console.log('Package and Upload Task Completed');
+            } else {
+                console.log('Package and Upload Task Failed');
+                console.log(error);
+            }
+        });
     } else {
-        console.log('Package and Upload Task Failed');
+        console.log('packageAndUploadManager failed to initialize');
         console.log(error);
     }
 });

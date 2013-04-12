@@ -14,7 +14,7 @@
 // Common Modules
 //-------------------------------------------------------------------------------
 
-var bugpack         = require('bugpack').context(module);
+var bugpack         = require('bugpack').context();
 
 //-------------------------------------------------------------------------------
 // BugPack Modules
@@ -29,6 +29,10 @@ var EventDispatcher = bugpack.require('EventDispatcher');
 //-------------------------------------------------------------------------------
 
 var LogEventManager = Class.extend(EventDispatcher, {
+
+    /**
+     * @param {string} name
+     */
     _constructor: function(name){
         this._super();
 
