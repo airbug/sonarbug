@@ -74,7 +74,7 @@ var SonarBug = Class.extend(Obj, {
         /**
          * @type {{
          *  {
-         *    "currentCompletedId":571,
+         *    "currentCompletedId":100,
          *    "logRotationInterval":60000, 
          *    "cronJobs": {
          *        "packageAndUpload": {
@@ -173,7 +173,7 @@ var SonarBug = Class.extend(Obj, {
 
 
     //-------------------------------------------------------------------------------
-    // Class Methods
+    // Static Public Methods
     //-------------------------------------------------------------------------------
 
     start: function(){
@@ -286,12 +286,12 @@ var SonarBug = Class.extend(Obj, {
         var ioManager           = io.listen(server);
 
         ioManager.set('match origin protocol', true); //NOTE: Only necessary for use with wss, WebSocket Secure protocol
-        ioManager.of('/socketApi');
+        ioManager.set('resource', '/socket-api'); //NOTE: forward slash is required here unlike client setting
+        ioManager.of('/socket-api');
         ioManager.sockets.on('connection', function (socket) {
             console.log("Connection established")
             var userID;
             var visitID;
-            var logFileDirectory;
             var logFileName;
             var logFilePath;
 
@@ -307,8 +307,14 @@ var SonarBug = Class.extend(Obj, {
             })
 
             socket.on('tracklog', function(data){
+                if(!userID){
+                    userID = data.userID;
+                    visitID = data.visitID;
+                    logFileName = userID + '-' + visitID + '.log';
+                    logFilePath = activeFoldersPath + '/' + logFileName;
+                }
                 fs.appendFile(logFilePath, JSON.stringify(data) + '\n', function(){});
-                console.log("tracklog:", "userID:", userID, "visitID:", visitID);
+                console.log("tracklog:", "eventName:", data.eventName, "userID:", userID, "visitID:", visitID);
             });
 
             socket.on('disconnect', function(){
@@ -555,7 +561,7 @@ var SonarBug = Class.extend(Obj, {
 
 
     //-------------------------------------------------------------------------------
-    // CronJobs
+    // CronJobs: PackageAndUpload
     //-------------------------------------------------------------------------------
 
     /**

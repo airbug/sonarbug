@@ -197,7 +197,7 @@ var SonarBugClient = {
             //     port: 80
             //   , secure: false
             //   , document: 'document' in global ? document : false,
-                resource: 'socketApi' // defaults to 'socket.io'
+                resource: 'socket-api' // defaults to 'socket.io'
             //   , transports: io.transports
             //   , 'connect timeout': 10000
             //   , 'try multiple transports': true
@@ -252,11 +252,7 @@ var SonarBugClient = {
                 console.log('SonarBugClient disconnected');
                 // socket.io automatically attempts to reconnect on disconnect
                 // defaults to 10 attempts
-                // NOTE: SUNG may want to create a longer running interval here
             });
-
-            //NOTE: To ensure websocket connection
-            //var reconnectInterval = window.setInterval(function(){
 
             SonarBugClient.socket.socket.connect();
         }
