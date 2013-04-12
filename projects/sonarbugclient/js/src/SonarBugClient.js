@@ -119,7 +119,7 @@ var SonarBugClient = {
     configure: function(params, callback) {
         SonarBugClient.queue = new Queue();
         SonarBugClient.userID = UuidGenerator.generateUuid();
-        SonarBugClient.visitID = SonarBugClient.generateUuid();
+        SonarBugClient.visitID = UuidGenerator.generateUuid();
         SonarBugClient.hostname = params.hostname || params;
         SonarBugClient.configureCallback = callback;
         SonarBugClient.configureCallbackFired = false;
