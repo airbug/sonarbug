@@ -7,7 +7,6 @@
 //@Export('SonarBugClient')
 
 //@Require('Queue')
-//@Require('UuidGenerator')
 
 
 //-------------------------------------------------------------------------------
@@ -22,7 +21,6 @@ var bugpack = require('bugpack').context();
 //-------------------------------------------------------------------------------
 
 var Queue =         bugpack.require('Queue');
-var UuidGenerator = bugpack.require('UuidGenerator');
 
 
 //-------------------------------------------------------------------------------
@@ -30,7 +28,7 @@ var UuidGenerator = bugpack.require('UuidGenerator');
 //-------------------------------------------------------------------------------
 
 // NOTE: <script src="/socket.io/socket.io.js"></script> not required in HTML
-// unless socket.io.js is no longer loaded as a static js file
+//       unless socket.io.js is no longer loaded as a static js file
 // NOTE: SonarBugClient is configured in SplashApplication.js
 
 var SonarBugClient = {
@@ -93,18 +91,6 @@ var SonarBugClient = {
      */
     socket: null,
 
-    /**
-     * @private
-     * @type {string}
-     */
-    userID: null,
-
-    /**
-     * @private
-     * @type {string}
-     */
-    visitID: null,
-
 
     //-------------------------------------------------------------------------------
     // Static Methods
@@ -118,8 +104,6 @@ var SonarBugClient = {
      */
     configure: function(params, callback) {
         SonarBugClient.queue = new Queue();
-        SonarBugClient.userID = UuidGenerator.generateUuid();
-        SonarBugClient.visitID = UuidGenerator.generateUuid();
         SonarBugClient.hostname = params.hostname || params;
         SonarBugClient.configureCallback = callback;
         SonarBugClient.configureCallbackFired = false;
@@ -130,29 +114,7 @@ var SonarBugClient = {
      *
      */
     startTracking: function() {
-        var queue = SonarBugClient.queue;
-        var timestamp = new Date();
-
-        queue.enqueue(function(){
-            SonarBugClient.socket.emit('startTracking', {
-                "eventName": 'connect',
-                "userID": SonarBugClient.userID,
-                "visitID": SonarBugClient.visitID,
-                "timestamp": timestamp,
-                "data": null
-            });
-            console.log('SonarBugClient log:', SonarBugClient.userID, SonarBugClient.visitID, timestamp);
-        });
-
-        if(SonarBugClient.isConnected){
-            while(!queue.isEmpty() && SonarBugClient.isConnected){
-                var wrappedFunction = queue.dequeue();
-                wrappedFunction();
-                console.log('dequeued', wrappedFunction);
-            }
-        } else {
-            SonarBugClient.connect();
-        }
+        SonarBugClient.track('connect', null);
     },
 
     /**
@@ -160,10 +122,11 @@ var SonarBugClient = {
      * @param {*} data
      */
     track: function(eventName, data) {
+        SonarBugClient.queueTrackingEvent(eventName, data);
+
         if(SonarBugClient.isConnected){
-            SonarBugClient.sendTrackingEvent(eventName, data);
+            SonarBugClient.processTrackingQueue();
         } else {
-            SonarBugClient.queueTrackingEvent(eventName, data);
             SonarBugClient.connect();
         }
     },
@@ -221,7 +184,7 @@ var SonarBugClient = {
             })
             .on('connect_error', function(error) {
                 SonarBugClient.isConnecting = false;
-                console.log('SonarBugClient connect_error', error);
+                console.log('SonarBugClient connect_error:', error);
             })
             .on('connection_timeout', function() {
                 SonarBugClient.isConnecting = false;
@@ -233,10 +196,11 @@ var SonarBugClient = {
             })
             .on('reconnect', function(websocket) {
                 SonarBugClient.isConnected = true;
+                SonarBugClient.processTrackingQueue();
                 console.log('SonarBugClient reconnected');
             })
             .on('reconnect_error', function(error) {
-                console.log('SonarBugClient reconnect_error', error);
+                console.log('SonarBugClient reconnect_error:', error);
             })
             .on('reconnect_failed', function() {
                 console.log('SonarBugClient reconnect_failed');
@@ -250,11 +214,7 @@ var SonarBugClient = {
                 SonarBugClient.isConnecting = false;
                 SonarBugClient.isConnected = false;
                 console.log('SonarBugClient disconnected');
-                // socket.io automatically attempts to reconnect on disconnect
-                // defaults to 10 attempts
             });
-
-            SonarBugClient.socket.socket.connect();
         }
     },
 
@@ -274,8 +234,9 @@ var SonarBugClient = {
      * @param {Object} data
      */
     queueTrackingEvent: function(eventName, data) {
+        var timestamp = new Date();
         SonarBugClient.queue.enqueue(function() {
-            SonarBugClient.sendTrackingEvent(eventName, data);
+            SonarBugClient.sendTrackingEvent(eventName, timestamp, data);
         });
     },
 
@@ -294,19 +255,17 @@ var SonarBugClient = {
     /**
      * @private
      * @param {string} eventName
+     * @param {Date} timestamp
      * @param {Object} data
      */
-    sendTrackingEvent: function(eventName, data) {
+    sendTrackingEvent: function(eventName, timestamp, data) {
         //TODO BRN: Should this be a unix time stamp instead?
-        var timestamp = new Date();
         SonarBugClient.socket.emit('tracklog', {
             "eventName": eventName,
-            "userID": SonarBugClient.userID,
-            "visitID": SonarBugClient.visitID,
             "timestamp": timestamp,
             "data": data
         });
-        console.log('SonarBugClient log:', eventName, SonarBugClient.userID, SonarBugClient.visitID, timestamp, data);
+        console.log('SonarBugClient log:', eventName, timestamp, data);
     }
 };
 

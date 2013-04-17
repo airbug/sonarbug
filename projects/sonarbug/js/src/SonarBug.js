@@ -11,6 +11,7 @@
 //@Require('EventDispatcher')
 //@Require('sonarbug.PackageAndUploadManager')
 //@Require('bugfs.Path')
+//@Require('UuidGenerator')
 
 
 //-------------------------------------------------------------------------------
@@ -37,6 +38,7 @@ var Class                   = bugpack.require('Class');
 var LogEventManager         = bugpack.require('sonarbug.LogEventManager');
 var Obj                     = bugpack.require('Obj');
 var PackageAndUploadManager = bugpack.require('sonarbug.PackageAndUploadManager');
+var UuidGenerator           = bugpack.require('UuidGenerator');
 
 
 //-------------------------------------------------------------------------------
@@ -283,38 +285,29 @@ var SonarBug = Class.extend(Obj, {
     enableSockets: function(server){
         var _this               = this;
         var activeFoldersPath   = this.activeFoldersPath;
-        var ioManager           = io.listen(server);
+        var ioManager           = io.listen(server); //Global namespace
 
         ioManager.set('match origin protocol', true); //NOTE: Only necessary for use with wss, WebSocket Secure protocol
         ioManager.set('resource', '/socket-api'); //NOTE: forward slash is required here unlike client setting
-        ioManager.of('/socket-api');
-        ioManager.sockets.on('connection', function (socket) {
+        ioManager
+        .of('/socket-api') // local namespace manager
+        .on('connection', function (socket) {
             console.log("Connection established")
-            var userID;
-            var visitID;
-            var logFileName;
-            var logFilePath;
-
-            socket.on('startTracking', function(data){
-                userID = data.userID;
-                visitID = data.visitID;
-                logFileName = userID + '-' + visitID + '.log';
-                logFilePath = activeFoldersPath + '/' + logFileName;
-
-                fs.appendFile(logFilePath, JSON.stringify(data) + '\n', function(){});
-                console.log("startTracking:", "userID:", userID, "visitID:", visitID);
-                socket.removeAllListeners('startTracking');
-            })
+            var userID = UuidGenerator.generateUuid();
+            var visitID = UuidGenerator.generateUuid();
+            var logFileName = userID + '-' + visitID + '.log';
+            var logFilePath = activeFoldersPath + '/' + logFileName;
 
             socket.on('tracklog', function(data){
-                if(!userID){
-                    userID = data.userID;
-                    visitID = data.visitID;
-                    logFileName = userID + '-' + visitID + '.log';
-                    logFilePath = activeFoldersPath + '/' + logFileName;
+                data.userID = userID;
+                data.visitID = visitID;
+
+                if(logFilePath){
+                    fs.appendFile(logFilePath, JSON.stringify(data) + '\n', function(){});
+                    console.log("tracklog:", "eventName:", data.eventName, "userID:", userID, "visitID:", visitID);
+                } else {
+                    console.log('tracklog: Error: logFilePath is undefined');
                 }
-                fs.appendFile(logFilePath, JSON.stringify(data) + '\n', function(){});
-                console.log("tracklog:", "eventName:", data.eventName, "userID:", userID, "visitID:", visitID);
             });
 
             socket.on('disconnect', function(){
@@ -331,12 +324,21 @@ var SonarBug = Class.extend(Obj, {
                     data: null
                 };
 
-                console.log("disconnect:", "userID:", userID, "visitID:", visitID);
-
-                fs.appendFile(logFilePath, JSON.stringify(data) + '\n', function(error){
-                    fs.exists(completedUserFolderPath, function(exists){
-                        if(!exists){
-                            fs.mkdir(completedUserFolderPath, 0777, function(error){
+                if(logFilePath){
+                    console.log("disconnect:", "userID:", userID, "visitID:", visitID);
+                    fs.appendFile(logFilePath, JSON.stringify(data) + '\n', function(error){
+                        fs.exists(completedUserFolderPath, function(exists){
+                            if(!exists){
+                                fs.mkdir(completedUserFolderPath, 0777, function(error){
+                                    BugFs.move(logFilePath, completedUserFolderPath, function(error){
+                                        if(!error){
+                                            logEventManager.decrementMoveCount();
+                                        } else {
+                                            console.log(error);
+                                        }
+                                    });
+                                });
+                            } else {
                                 BugFs.move(logFilePath, completedUserFolderPath, function(error){
                                     if(!error){
                                         logEventManager.decrementMoveCount();
@@ -344,18 +346,13 @@ var SonarBug = Class.extend(Obj, {
                                         console.log(error);
                                     }
                                 });
-                            });
-                        } else {
-                            BugFs.move(logFilePath, completedUserFolderPath, function(error){
-                                if(!error){
-                                    logEventManager.decrementMoveCount();
-                                } else {
-                                    console.log(error);
-                                }
-                            });
-                        }
+                            }
+                        });
                     });
-                });
+                } else {
+                    console.log('disconnect: Error: logFilePath is undefined');
+                }
+                
             });
 
             socket.on('error', function(reason){
