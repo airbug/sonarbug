@@ -1,24 +1,25 @@
-// -------------------------------------------------------------------------------
-// Requires
-// -------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------
+// Annotations
+//-------------------------------------------------------------------------------
 
 //@Package('sonarbug')
 
 //@Export('PackageAndUploadManager')
 
+//@Require('Class')
+//@Require('Obj')
 //@Require('aws.AwsConfig')
+//@Require('aws.S3Api')
+//@Require('aws.S3Bucket')
 //@Require('bugboil.BugBoil')
 //@Require('bugflow.BugFlow')
 //@Require('bugfs.BugFs')
-//@Require('Class')
-//@Require('Obj')
 //@Require('bugfs.Path')
-//@Require('aws.S3Api')
-//@Require('aws.S3Bucket')
 
-// -------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------
 // Common Modules
-// -------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------
 
 var AWS         = require('aws-sdk');
 var bugpack     = require('bugpack').context();
@@ -28,44 +29,79 @@ var path        = require("path");
 var tar         = require('tar');
 var zlib        = require('zlib');
 
+
 // -------------------------------------------------------------------------------
 // Bugpack
 // -------------------------------------------------------------------------------
 
+var Class       = bugpack.require('Class');
+var Obj         = bugpack.require('Obj');
 var AwsConfig   = bugpack.require('aws.AwsConfig');
+var S3Api       = bugpack.require('aws.S3Api');
+var S3Bucket    = bugpack.require('aws.S3Bucket');
 var BugBoil     = bugpack.require('bugboil.BugBoil');
 var BugFlow     = bugpack.require('bugflow.BugFlow');
 var BugFs       = bugpack.require('bugfs.BugFs');
-var Class       = bugpack.require('Class');
-var Obj         = bugpack.require('Obj');
 var Path        = bugpack.require('bugfs.Path');
-var S3Api       = bugpack.require('aws.S3Api');
-var S3Bucket    = bugpack.require('aws.S3Bucket');
+
 
 //-------------------------------------------------------------------------------
 // Simplify References
 //-------------------------------------------------------------------------------
+
 var $if                 = BugFlow.$if;
 var $foreachParallel    = BugBoil.$foreachParallel;
 var $series             = BugFlow.$series;
 var $task               = BugFlow.$task;
 
-// -------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------
 // Declare Class
-// -------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------
 
 var PackageAndUploadManager = Class.extend(Obj, {
-    
+
+    //-------------------------------------------------------------------------------
+    // Constructor
+    //-------------------------------------------------------------------------------
+
     _constructor: function(){
+
+        this._super();
+
+        // -------------------------------------------------------------------------------
+        // Declare Variables
+        // -------------------------------------------------------------------------------
+
+        /**
+         * @private
+         * @type {boolean}
+         */
         this.isBucketEnsured        = null;
+
+        /**
+         * @private
+         * @type {Object}
+         */
         this.props                  = null;
+
+        /**
+         * @private
+         * @type {string}
+         */
         this.packagedFolderPath     = null;
+
+        /**
+         * @private
+         * @type {string}
+         */
         this.toPackageFoldersPath   = null;
     },
 
-    // -------------------------------------------------------------------------------
-    // Public Static Methods
-    // -------------------------------------------------------------------------------
+
+    //-------------------------------------------------------------------------------
+    // Public Methods
+    //-------------------------------------------------------------------------------
 
     /**
      * @param {{
@@ -88,14 +124,14 @@ var PackageAndUploadManager = Class.extend(Obj, {
     initialize: function(options, callback){
         console.log('PackageAndUploadManager initializing...');
         var _this = this;
-        if(typeof options === 'function'){
+        if (typeof options === 'function') {
             var callback = options;
             var options = null;
         }
-        callback = callback || function(){};
+        callback = callback || function() {};
 
         $series([
-            $task(function(flow){
+            $task(function(flow) {
                 // Defaults
                 _this.isBucketEnsured        = false;
                 _this.props                  = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..') + '/config.json'));
@@ -103,8 +139,8 @@ var PackageAndUploadManager = Class.extend(Obj, {
                 _this.toPackageFoldersPath   = path.resolve(__dirname, '..', 'logs/', 'toPackage/');
 
                 // Manual Overrides
-                if(options){
-                    for(var prop in options){
+                if (options) {
+                    for (var prop in options) {
                         _this[prop] = options[prop];
                     }
                 }
@@ -112,12 +148,12 @@ var PackageAndUploadManager = Class.extend(Obj, {
                 flow.complete();
             }),
             // Synchronize ensure bucket function
-            $task(function(flow){
-                _this.s3EnsureBucket(function(error){
+            $task(function(flow) {
+                _this.s3EnsureBucket(function(error) {
                     flow.complete(error);
                 });
             })
-        ]).execute(function(error){
+        ]).execute(function(error) {
             if(!error){
                 console.log('PackageAndUploadManager successfully initialized');
             } else {
@@ -132,7 +168,7 @@ var PackageAndUploadManager = Class.extend(Obj, {
       * @param {function(error, string)} callback
       */
     package: function(directoryName, callback){         
-        if(directoryName === 'function' && callback == null){
+        if (directoryName === 'function' && callback == null) {
             var callback = directoryName;
             var directoryName = "";
         }
@@ -144,15 +180,15 @@ var PackageAndUploadManager = Class.extend(Obj, {
 
         $task(function(flow){
             inp.pipe(tar.Pack()).pipe(zlib.createGzip())
-                .on('end', function(){
+                .on('end', function() {
                     console.log("Packed up directory, '" + directoryPath + "', to " + outputFilePath);
                     flow.complete();
                 })
-                .on('error', function(error){
-                    flow.complete(error);
+                .on('error', function(error) {
+                    flow.error(error);
                 })
                 .pipe(out);
-        }).execute(function(error){
+        }).execute(function(error) {
             if(callback){
                 callback(error, outputFilePath);
             }
@@ -163,9 +199,9 @@ var PackageAndUploadManager = Class.extend(Obj, {
      * @param {string} directoryName
      * @param {function(error, string)} callback
      */
-    packageAndUpload: function(directoryName, callback){        
+    packageAndUpload: function(directoryName, callback) {
         var _this = this;
-        this.package(directoryName, function(error, filePath){
+        this.package(directoryName, function(error, filePath) {
             if(!error){
                 _this.upload(filePath, function(error){
                     callback(error, directoryName);
@@ -183,11 +219,11 @@ var PackageAndUploadManager = Class.extend(Obj, {
     packageAndUploadEach: function(callback){        
         var _this = this;
         var directoryPath = this.toPackageFoldersPath;
-        var callback = callback || function(){};
+        var callback = callback || function() {};
         $series([
-            $task(function(flow){
+            $task(function(flow) {
                 if(!_this.isBucketEnsured){
-                    _this.s3EnsureBucket(function(error){
+                    _this.s3EnsureBucket(function(error) {
                         if(!error){
                             _this.isBucketEnsured = true;
                             console.log("Bucket Ensured");
@@ -196,11 +232,11 @@ var PackageAndUploadManager = Class.extend(Obj, {
                     });
                 }
             }),
-            $task(function(flow){
+            $task(function(flow) {
                 fs.readdir(directoryPath, function(error, directories){
                     if(!error){
-                        $foreachParallel(directories, function(boil, directory){
-                            _this.packageAndUpload(directory, function(error, directory){
+                        $foreachParallel(directories, function(boil, directory) {
+                            _this.packageAndUpload(directory, function(error, directory) {
                                 BugFs.deleteDirectory(path.resolve(directoryPath, directory), true, false, function(error){
                                     if(!error){
                                         console.log("Directory", directory, "successfully removed");
@@ -285,8 +321,9 @@ var PackageAndUploadManager = Class.extend(Obj, {
         ]).execute(callback);
     },
 
+
     //-------------------------------------------------------------------------------
-    // Private Static Methods
+    // Private Methods
     //-------------------------------------------------------------------------------
 
     /**
@@ -350,6 +387,7 @@ var PackageAndUploadManager = Class.extend(Obj, {
        ).execute(callback);
    }
 });
+
 
 // -------------------------------------------------------------------------------
 // Exports

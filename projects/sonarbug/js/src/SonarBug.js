@@ -50,6 +50,7 @@ var $series             = BugFlow.$series;
 var $parallel           = BugFlow.$parallel;
 var $task               = BugFlow.$task;
 
+
 //-------------------------------------------------------------------------------
 // Declare Class
 //-------------------------------------------------------------------------------
@@ -297,7 +298,6 @@ var SonarBug = Class.extend(Obj, {
             var visitID = UuidGenerator.generateUuid();
             var logFileName = userID + '-' + visitID + '.log';
             var logFilePath = activeFoldersPath + '/' + logFileName;
-
             socket.on('tracklog', function(data){
                 data.userID = userID;
                 data.visitID = visitID;
@@ -313,7 +313,7 @@ var SonarBug = Class.extend(Obj, {
             socket.on('disconnect', function(){
                 var currentCompletedFolderName = _this.currentCompletedFolderName;
                 var logEventManager = _this.logEventManagers[currentCompletedFolderName];
-                logEventManager.incrementMoveCount()
+                logEventManager.incrementMoveCount();
 
                 var completedUserFolderPath = _this.completedFoldersPath + '/' + currentCompletedFolderName + '/' + userID + '/';
                 var data = {
@@ -566,7 +566,7 @@ var SonarBug = Class.extend(Obj, {
      */
     initializePackageAndUploadCronJob: function(callback){
         var callback = callback || function(){};
-        var configOverrides = this.config.cronJobs.packageAndUpload;
+        var configOverrides = null;
         var config = {
             cronTime: '00 15 */1 * * *',
             start: false,
@@ -574,6 +574,10 @@ var SonarBug = Class.extend(Obj, {
             // , context:
             // , onComplete: function(){}
         };
+
+        if (this.config.cronJobs) {
+            configOverrides = this.config.cronJobs.packageAndUpload;
+        }
 
         if(configOverrides){
             for(var prop in configOverrides){

@@ -49,7 +49,9 @@ buildProperties({
                 "tar": 'git://github.com/airbug/node-tar.git#master',
                 "time": "0.9.x"
             },
-            scripts: {}
+            scripts: {
+                "start": "node ./scripts/sonarbugserver-start.js"
+            }
         },
         sourcePaths: [
             "./projects/sonarbug/js/src",
