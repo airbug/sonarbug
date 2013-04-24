@@ -264,6 +264,10 @@ var SonarBug = Class.extend(Obj, {
     configure: function(app, express, callback){
         app.configure(function(){
             app.set('port', process.env.PORT || 3000);
+            app.use(function (req, res, next) {
+                res.removeHeader("X-Powered-By");
+                next();
+            });
             // app.use(express.favicon());
             app.use(express.logger('dev'));
             // app.use(express.bodyParser());
@@ -274,6 +278,14 @@ var SonarBug = Class.extend(Obj, {
 
         app.configure('development', function(){
             app.use(express.errorHandler());
+        });
+
+        app.all('/socket-api/*', function(req, res, next){
+            res.header("Access-Control-Allow-Origin", "*");
+            res.header("Access-Control-Allow-Headers", "X-Requested-With");
+            res.header("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+            res.header("Access-Control-Allow-Headers", "Content-Type");
+            next();
         });
 
         callback();
@@ -291,7 +303,7 @@ var SonarBug = Class.extend(Obj, {
         ioManager.set('match origin protocol', true); //NOTE: Only necessary for use with wss, WebSocket Secure protocol
         ioManager.set('resource', '/socket-api'); //NOTE: forward slash is required here unlike client setting
         ioManager
-        .of('/socket-api') // local namespace manager
+        .of('/socket-api') // @return local namespace manager
         .on('connection', function (socket) {
             console.log("Connection established")
             var userID = UuidGenerator.generateUuid();
@@ -352,7 +364,6 @@ var SonarBug = Class.extend(Obj, {
                 } else {
                     console.log('disconnect: Error: logFilePath is undefined');
                 }
-                
             });
 
             socket.on('error', function(reason){
