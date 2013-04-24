@@ -260,10 +260,10 @@ buildTarget('local').buildFlow(
                 targetTask('createNodePackage', {
                     properties: {
                         packageJson: buildProject.getProperty("splitbug.packageJson"),
+                        resourcePaths: buildProject.getProperty("splitbug.resourcePaths"),
                         sourcePaths: buildProject.getProperty("splitbug.sourcePaths"),
                         scriptPaths: buildProject.getProperty("splitbug.scriptPaths"),
-                        testPaths: buildProject.getProperty("splitbug.testPaths"),
-                        binPaths: buildProject.getProperty("splitbug.binPaths")
+                        testPaths: buildProject.getProperty("splitbug.testPaths")
                     }
                 }),
                 targetTask('generateBugPackRegistry', {
@@ -394,10 +394,10 @@ buildTarget('prod').buildFlow(
                 targetTask('createNodePackage', {
                     properties: {
                         packageJson: buildProject.getProperty("splitbug.packageJson"),
+                        resourcePaths: buildProject.getProperty("splitbug.resourcePaths"),
                         sourcePaths: buildProject.getProperty("splitbug.sourcePaths"),
                         scriptPaths: buildProject.getProperty("splitbug.scriptPaths"),
-                        testPaths: buildProject.getProperty("splitbug.testPaths"),
-                        binPaths: buildProject.getProperty("splitbug.binPaths")
+                        testPaths: buildProject.getProperty("splitbug.testPaths")
                     }
                 }),
                 targetTask('generateBugPackRegistry', {

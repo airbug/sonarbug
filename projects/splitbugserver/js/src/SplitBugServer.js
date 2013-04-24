@@ -153,7 +153,7 @@ var SplitBugServer = Class.extend(Obj, {
                 cronTime: '*/5 * * * *',
                 onTick: function() {
                     var countScriptPath = path.resolve(__dirname, "../scripts/splitbug-count-tests-task.js");
-                    var child = child_process.exec("node " +countScriptPath , function (error, stdout, stderr) {
+                    var child = child_process.exec("node " + countScriptPath , function (error, stdout, stderr) {
                         console.log('stdout: ' + stdout);
                         console.log('stderr: ' + stderr);
                         if (error !== null) {
@@ -177,7 +177,11 @@ var SplitBugServer = Class.extend(Obj, {
 
             this.app = express();
 
-            this.app.configure(function(){
+            this.app.configure(function() {
+                _this.app.use(function (req, res, next) {
+                    res.removeHeader("X-Powered-By");
+                    next();
+                });
                 _this.app.set('port', _this.config.port);
                 _this.app.use(express.logger('dev'));
                 _this.app.use(express.bodyParser());
@@ -193,6 +197,17 @@ var SplitBugServer = Class.extend(Obj, {
             // Routes
             //-------------------------------------------------------------------------------
 
+            // NOTE BRN: This ensures that we don't send the powered-by header. These headers don't really do anything
+            // and just make it easier for hackers to exploit your system.
+            // http://serverfault.com/questions/395332/whats-the-use-of-x-powered-by-server-and-other-similar-http-headers
+
+            this.app.get('/', function(req, res) {
+                var foo = {
+                    title: "splitbug"
+                };
+                res.json(foo);
+            });
+
             this.app.all('/api/*', function(req, res, next){
                 res.header("Access-Control-Allow-Origin", "*");
                 res.header("Access-Control-Allow-Headers", "X-Requested-With");
@@ -207,10 +222,6 @@ var SplitBugServer = Class.extend(Obj, {
             });
 
             this.app.post('/api/split-test-session/establish', function(req, res) {
-                //TEST
-                console.log("api split test session establish call received");
-                console.dir(req.body);
-
                 var data = req.body;
                 SplitTestSessionApi.establishSplitTestSession(data.userUuid, function(error, splitTestSession) {
                     if (!error) {
@@ -229,17 +240,12 @@ var SplitBugServer = Class.extend(Obj, {
                 })
             });
 
-
             this.app.options('/api/split-test-session/validate', function(req, res) {
                 res.status(200);
                 res.end();
             });
 
             this.app.post('/api/split-test-session/validate', function(req, res) {
-                //TEST
-                console.log("api split test session validate call received");
-                console.dir(req.body);
-
                 var data = req.body;
                 //TODO BRN: Vaildate the data here
                 var splitTestSession = new SplitTestSession(data.splitTestSession);
@@ -267,10 +273,6 @@ var SplitBugServer = Class.extend(Obj, {
             });
 
             this.app.post('/api/split-test-user/generate', function(req, res) {
-                //TEST
-                console.log("api split test user create call received");
-                console.dir(req.body);
-
                 SplitTestUserApi.generateSplitTestUser(function(error, splitTestUser) {
                     if (!error) {
                         res.header("Content-Type", "application/json");

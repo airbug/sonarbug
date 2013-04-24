@@ -9,6 +9,7 @@
 //@Require('Class')
 //@Require('Obj')
 //@Require('TypeUtil')
+//@Require('sonarbugclient.SonarBugClient')
 
 
 //-------------------------------------------------------------------------------
@@ -22,9 +23,10 @@ var bugpack = require('bugpack').context();
 // BugPack
 //-------------------------------------------------------------------------------
 
-var Class =     bugpack.require('Class');
-var Obj =       bugpack.require('Obj');
-var TypeUtil =  bugpack.require('TypeUtil');
+var Class =             bugpack.require('Class');
+var Obj =               bugpack.require('Obj');
+var TypeUtil =          bugpack.require('TypeUtil');
+var SonarBugClient =    bugpack.require('sonarbugclient.SonarBugClient');
 
 
 //-------------------------------------------------------------------------------
@@ -87,12 +89,15 @@ var SplitTestRunner = Class.extend(Obj, {
     run: function(splitTestSession) {
         if (splitTestSession) {
             if (splitTestSession.getTestName() !== null && splitTestSession.getTestName() === this.name) {
-                //TODO BRN: Report to sonarbug that we are about to run the test
                 if (splitTestSession.getTestGroup() === "test") {
                     this.testFunction();
                 } else {
                     this.controlFunction();
                 }
+                SonarBugClient.track("splitTest", {
+                    testName: splitTestSession.getTestName(),
+                    testGroup: splitTestSession.getTestGroup()
+                });
             } else {
                 this.controlFunction();
             }
