@@ -298,13 +298,20 @@ var SonarBug = Class.extend(Obj, {
     enableSockets: function(server){
         var _this               = this;
         var activeFoldersPath   = this.activeFoldersPath;
-        var ioManager           = io.listen(server); //Global namespace
+        var ioManager           = io.listen(server); //NOTE: Global namespace
 
+        ioManager.set('transports', [
+            'websocket',
+            'flashsocket',
+            'htmlfile',
+            'xhr-polling',
+            'jsonp-polling'
+        ]);
         ioManager.set('match origin protocol', true); //NOTE: Only necessary for use with wss, WebSocket Secure protocol
         ioManager.set('resource', '/socket-api'); //NOTE: forward slash is required here unlike client setting
-        ioManager
-        .of('/socket-api') // @return local namespace manager
-        .on('connection', function (socket) {
+
+        var socketApiManager = ioManager.of('/socket-api'); //NOTE: @return local namespace manager
+        socketApiManager.on('connection', function (socket) {
             console.log("Connection established")
             var userID = UuidGenerator.generateUuid();
             var visitID = UuidGenerator.generateUuid();
