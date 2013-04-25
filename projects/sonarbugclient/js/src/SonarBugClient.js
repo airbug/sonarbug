@@ -7,6 +7,7 @@
 //@Export('SonarBugClient')
 
 //@Require('Queue')
+//@Require('socket-io.SocketIo')
 
 
 //-------------------------------------------------------------------------------
@@ -20,16 +21,13 @@ var bugpack = require('bugpack').context();
 // BugPack
 //-------------------------------------------------------------------------------
 
-var Queue =         bugpack.require('Queue');
+var Queue =     bugpack.require('Queue');
+var SocketIo =  bugpack.require('socket-io.SocketIo');
 
 
 //-------------------------------------------------------------------------------
 // Declare Class
 //-------------------------------------------------------------------------------
-
-// NOTE: <script src="/socket.io/socket.io.js"></script> not required in HTML
-//       unless socket.io.js is no longer loaded as a static js file
-// NOTE: SonarBugClient is configured in SplashApplication.js
 
 var SonarBugClient = {
 
@@ -174,7 +172,7 @@ var SonarBugClient = {
             //   , 'flash policy port': 10843
             //   , 'manualFlush': false
             };
-            var socket = SonarBugClient.socket = io.connect(SonarBugClient.hostname, options);
+            var socket = SonarBugClient.socket = SocketIo.connect(SonarBugClient.hostname, options);
             socket.on('connect', function() {
                 SonarBugClient.isConnected = true;
                 SonarBugClient.isConnecting = false;

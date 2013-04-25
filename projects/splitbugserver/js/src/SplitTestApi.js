@@ -291,12 +291,12 @@ var SplitTestApi = {
                     if (splitTestObject.name) {
                         SplitTestApi.getSplitTestByName(splitTestObject.name, function(error, splitTest) {
                             if (!error) {
-                                activeSplitTestsMap.remove(splitTest.getName());
                                 var changed = false;
                                 if (!splitTest) {
                                     splitTest = new SplitTest(splitTestObject);
                                     changed = true;
                                 }
+                                activeSplitTestsMap.remove(splitTest.getName());
 
                                 //NOTE BRN: We do not allow or WANT to set the weight and the counts here. That process
                                 // is done by our map reduce jobs since that info is used for targeting.
