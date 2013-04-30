@@ -6,6 +6,9 @@
 
 //@Export('SonarBugClient')
 
+//@Require('Class')
+//@Require('Obj')
+//@Require('Proxy')
 //@Require('Queue')
 //@Require('socket-io.SocketIo')
 
@@ -21,6 +24,9 @@ var bugpack = require('bugpack').context();
 // BugPack
 //-------------------------------------------------------------------------------
 
+var Class =     bugpack.require('Class');
+var Obj =       bugpack.require('Obj');
+var Proxy =     bugpack.require('Proxy');
 var Queue =     bugpack.require('Queue');
 var SocketIo =  bugpack.require('socket-io.SocketIo');
 
@@ -29,69 +35,79 @@ var SocketIo =  bugpack.require('socket-io.SocketIo');
 // Declare Class
 //-------------------------------------------------------------------------------
 
-var SonarBugClient = {
+var SonarBugClient = Class.extend(Obj, {
 
     //-------------------------------------------------------------------------------
-    // Static Variables
+    // Constructor
     //-------------------------------------------------------------------------------
 
-    /**
-     * @private
-     * @type {function()}
-     */
-    configureCallback: null,
+    _constructor: function() {
 
-    /**
-     * @private
-     * @type {boolean}
-     */
-    configureCallbackFired: false,
+        this._super();
 
-    /**
-     * @private
-     * @type {string}
-     */
-    hostname: null,
 
-    /**
-     * @private
-     * @type {boolean}
-     */
-    isConnected: false,
+        //-------------------------------------------------------------------------------
+        // Declare Variables
+        //-------------------------------------------------------------------------------
 
-    /**
-     * @private
-     * @type {boolean}
-     */
-    isConnecting: false,
+        /**
+         * @private
+         * @type {function()}
+         */
+        this.configureCallback = null;
 
-    /**
-     * @private
-     * @type {Queue}
-     */
-    queue: null,
+        /**
+         * @private
+         * @type {boolean}
+         */
+        this.configureCallbackFired = false;
 
-    /**
-     * @private
-     * @type {number}
-     */
-    retryAttempts: 0,
+        /**
+         * @private
+         * @type {string}
+         */
+        this.hostname = null;
 
-    /**
-     * @private
-     * @type {number}
-     */
-    retryLimit: 3,
+        /**
+         * @private
+         * @type {boolean}
+         */
+        this.isConnected = false;
 
-    /**
-     * @private
-     * @type {*}
-     */
-    socket: null,
+        /**
+         * @private
+         * @type {boolean}
+         */
+        this.isConnecting = false;
+
+        /**
+         * @private
+         * @type {Queue}
+         */
+        this.queue = new Queue();
+
+        /**
+         * @private
+         * @type {number}
+         */
+        this.retryAttempts = 0;
+
+        /**
+         * @private
+         * @type {number}
+         */
+        this.retryLimit = 3;
+
+        /**
+         * @private
+         * @type {*}
+         */
+        this.socket = null;
+    },
 
 
     //-------------------------------------------------------------------------------
-    // Static Methods
+    // Class Methods
     //-------------------------------------------------------------------------------
 
     /**
@@ -101,18 +117,17 @@ var SonarBugClient = {
      * @param {function} callback
      */
     configure: function(params, callback) {
-        SonarBugClient.queue = new Queue();
-        SonarBugClient.hostname = params.hostname || params;
-        SonarBugClient.configureCallback = callback;
-        SonarBugClient.configureCallbackFired = false;
-        SonarBugClient.connect();
+        this.hostname = params.hostname || params;
+        this.configureCallback = callback;
+        this.configureCallbackFired = false;
+        this.connect();
     },
 
     /**
      *
      */
     startTracking: function() {
-        SonarBugClient.track('connect', null);
+        this.track('connect', null);
     },
 
     /**
@@ -120,18 +135,18 @@ var SonarBugClient = {
      * @param {*} data
      */
     track: function(eventName, data) {
-        SonarBugClient.queueTrackingEvent(eventName, data);
+        this.queueTrackingEvent(eventName, data);
 
-        if(SonarBugClient.isConnected){
-            SonarBugClient.processTrackingQueue();
+        if(this.isConnected){
+            this.processTrackingQueue();
         } else {
-            SonarBugClient.connect();
+            this.connect();
         }
     },
 
 
     //-------------------------------------------------------------------------------
-    // Private Static Methods
+    // Private Class Methods
     //-------------------------------------------------------------------------------
 
     /**
@@ -139,10 +154,10 @@ var SonarBugClient = {
      * @param {Error=} error
      */
     completeConfiguration: function(error) {
-        if (!SonarBugClient.configureCallbackFired){
-            SonarBugClient.configureCallbackFired = true;
-            if (SonarBugClient.configureCallback) {
-                SonarBugClient.configureCallback(error);
+        if (!this.configureCallbackFired){
+            this.configureCallbackFired = true;
+            if (this.configureCallback) {
+                this.configureCallback(error);
             }
         }
     },
@@ -151,8 +166,9 @@ var SonarBugClient = {
      * @private
      */
     connect: function() {
-        if (!SonarBugClient.isConnected && !SonarBugClient.isConnecting) {
-            SonarBugClient.isConnecting = true;
+        var _this = this;
+        if (!this.isConnected && !this.isConnecting) {
+            this.isConnecting = true;
             console.log('SonarBugClient is attempting to connect...');
             var options = {
             //     port: 80
@@ -172,29 +188,29 @@ var SonarBugClient = {
             //   , 'flash policy port': 10843
             //   , 'manualFlush': false
             };
-            var socket = SonarBugClient.socket = SocketIo.connect(SonarBugClient.hostname, options);
+            var socket = this.socket = SocketIo.connect(this.hostname, options);
             socket.on('connect', function() {
-                SonarBugClient.isConnected = true;
-                SonarBugClient.isConnecting = false;
+                _this.isConnected = true;
+                _this.isConnecting = false;
                 console.log('SonarBugClient is connected');
-                SonarBugClient.processTrackingQueue();
-                SonarBugClient.completeConfiguration();
+                _this.processTrackingQueue();
+                _this.completeConfiguration();
             })
             .on('connect_error', function(error) {
-                SonarBugClient.isConnecting = false;
+                _this.isConnecting = false;
                 console.log('SonarBugClient connect_error:', error);
             })
             .on('connection_timeout', function() {
-                SonarBugClient.isConnecting = false;
+                _this.isConnecting = false;
                 console.log('SonarBugClient connection_timeout');
             })
             .on('connect_failed', function() {
-                SonarBugClient.isConnecting = false;
+                _this.isConnecting = false;
                 console.log('SonarBugClient connection_failed');
             })
             .on('reconnect', function(websocket) {
-                SonarBugClient.isConnected = true;
-                SonarBugClient.processTrackingQueue();
+                _this.isConnected = true;
+                _this.processTrackingQueue();
                 console.log('SonarBugClient reconnected');
             })
             .on('reconnect_error', function(error) {
@@ -204,13 +220,13 @@ var SonarBugClient = {
                 console.log('SonarBugClient reconnect_failed');
             })
             .on('error', function(error) {
-                SonarBugClient.isConnecting = false;
+                _this.isConnecting = false;
                 console.log('SonarBugClient error:', error);
-                SonarBugClient.retryConnect();
+                _this.retryConnect();
             })
             .on('disconnect', function() {
-                SonarBugClient.isConnecting = false;
-                SonarBugClient.isConnected = false;
+                _this.isConnecting = false;
+                _this.isConnected = false;
                 console.log('SonarBugClient disconnected');
             });
         }
@@ -220,8 +236,8 @@ var SonarBugClient = {
      * @private
      */
     processTrackingQueue: function() {
-        while (!SonarBugClient.queue.isEmpty() && SonarBugClient.isConnected){
-            var wrappedFunction = SonarBugClient.queue.dequeue();
+        while (!this.queue.isEmpty() && this.isConnected){
+            var wrappedFunction = this.queue.dequeue();
             wrappedFunction();
         }
     },
@@ -232,9 +248,10 @@ var SonarBugClient = {
      * @param {Object} data
      */
     queueTrackingEvent: function(eventName, data) {
+        var _this = this;
         var timestamp = new Date();
-        SonarBugClient.queue.enqueue(function() {
-            SonarBugClient.sendTrackingEvent(eventName, timestamp, data);
+        this.queue.enqueue(function() {
+            _this.sendTrackingEvent(eventName, timestamp, data);
         });
     },
 
@@ -242,11 +259,11 @@ var SonarBugClient = {
      * @private
      */
     retryConnect: function() {
-        if (SonarBugClient.retryAttempts < SonarBugClient.retryLimit) {
-            SonarBugClient.retryAttempts++;
-            SonarBugClient.connect();
+        if (this.retryAttempts < SonarBugClient.retryLimit) {
+            this.retryAttempts++;
+            this.connect();
         } else {
-            SonarBugClient.completeConfiguration(new Error("Maximum retries reached. Could not connect to sonarbug server."));
+            this.completeConfiguration(new Error("Maximum retries reached. Could not connect to sonarbug server."));
         }
     },
 
@@ -258,14 +275,41 @@ var SonarBugClient = {
      */
     sendTrackingEvent: function(eventName, timestamp, data) {
         //TODO BRN: Should this be a unix time stamp instead?
-        SonarBugClient.socket.emit('tracklog', {
+        this.socket.emit('tracklog', {
             "eventName": eventName,
             "timestamp": timestamp,
             "data": data
         });
         console.log('SonarBugClient log:', eventName, timestamp, data);
     }
+});
+
+
+//-------------------------------------------------------------------------------
+// Static Class Methods
+//-------------------------------------------------------------------------------
+
+/**
+ * @static
+ * @type {SonarBugClient}
+ */
+SonarBugClient.instance = null;
+
+/**
+ * @return {SonarBugClient}
+ */
+SonarBugClient.getInstance = function() {
+    if (!SonarBugClient.instance) {
+        SonarBugClient.instance = new SonarBugClient();
+    }
+    return SonarBugClient.instance;
 };
+
+Proxy.proxy(SonarBugClient, SonarBugClient.getInstance, [
+    "configure",
+    "startTracking",
+    "track"
+]);
 
 
 //-------------------------------------------------------------------------------

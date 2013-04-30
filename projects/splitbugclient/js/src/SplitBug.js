@@ -8,6 +8,7 @@
 
 //@Require('Class')
 //@Require('Obj')
+//@Require('Proxy')
 //@Require('Queue')
 //@Require('splitbug.Cookies')
 //@Require('splitbug.SplitBugClient')
@@ -29,6 +30,7 @@ var bugpack = require('bugpack').context();
 
 var Class =             bugpack.require('Class');
 var Obj =               bugpack.require('Obj');
+var Proxy =             bugpack.require('Proxy');
 var Queue =             bugpack.require('Queue');
 var Cookies =           bugpack.require('splitbug.Cookies');
 var SplitBugClient =    bugpack.require('splitbug.SplitBugClient');
@@ -354,7 +356,12 @@ var SplitBug = Class.extend(Obj, {
 // Static Variables
 //-------------------------------------------------------------------------------
 
-SplitBug.instance = new SplitBug();
+/**
+ * @static
+ * @private
+ * @type {SplitBug}
+ */
+SplitBug.instance = null;
 
 
 //-------------------------------------------------------------------------------
@@ -363,26 +370,19 @@ SplitBug.instance = new SplitBug();
 
 /**
  * @static
- * @param {{
- *  name: string,
- *  controlFunction: function(),
- *  testFunction: function()
- * }}
+ * @return {SplitBug}
  */
-SplitBug.splitTest = function(params) {
-    SplitBug.instance.splitTest(params);
+SplitBug.getInstance = function() {
+    if (!SplitBug.instance) {
+        SplitBug.instance = new SplitBug();
+    }
+    return SplitBug.instance;
 };
 
-/**
- * @static
- * @param {{
- *  host: ?string,
- *  port: ?number
- * }} params
- */
-SplitBug.configure = function(params, callback) {
-    SplitBug.instance.configure(params, callback);
-};
+Proxy.proxy(SplitBug, SplitBug.getInstance, [
+    "configure",
+    "splitTest"
+]);
 
 
 //-------------------------------------------------------------------------------
