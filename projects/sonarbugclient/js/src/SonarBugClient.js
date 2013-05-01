@@ -52,6 +52,12 @@ var SonarBugClient = Class.extend(Obj, {
 
         /**
          * @private
+         * @type {string}
+         */
+        version: "0.0.4",
+
+        /**
+         * @private
          * @type {function()}
          */
         this.configureCallback = null;
@@ -104,7 +110,6 @@ var SonarBugClient = Class.extend(Obj, {
          */
         this.socket = null;
     },
-
 
     //-------------------------------------------------------------------------------
     // Class Methods
@@ -275,12 +280,16 @@ var SonarBugClient = Class.extend(Obj, {
      */
     sendTrackingEvent: function(eventName, timestamp, data) {
         //TODO BRN: Should this be a unix time stamp instead?
+        var version     = this.version;
+        var location    = window.location.toString();
         this.socket.emit('tracklog', {
             "eventName": eventName,
             "timestamp": timestamp,
+            "version": version,
+            "location": location,
             "data": data
         });
-        console.log('SonarBugClient log:', eventName, timestamp, data);
+        console.log('SonarBugClient tracklog:', "eventName:", eventName, ", timestamp:", timestamp, ", version:", version, ", location:", location, ", data:", data);
     }
 });
 
