@@ -54,7 +54,7 @@ var SonarBugClient = Class.extend(Obj, {
          * @private
          * @type {string}
          */
-        version: "0.0.4",
+        this.version = "0.0.4";
 
         /**
          * @private

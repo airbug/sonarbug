@@ -113,6 +113,7 @@ var SplitBugServer = Class.extend(Obj, {
                     if (exists) {
                         BugFs.readFile(configPath, 'utf8', function(error, data) {
                             if (!error) {
+                                console.log("config loaded ", data);
                                 _this.config = JSON.parse(data);
                                 flow.complete();
                             } else {
@@ -177,6 +178,7 @@ var SplitBugServer = Class.extend(Obj, {
 
             this.app = express();
 
+            console.log("Configuring server to start on port " + this.config.port);
             this.app.configure(function() {
                 _this.app.use(function (req, res, next) {
                     res.removeHeader("X-Powered-By");

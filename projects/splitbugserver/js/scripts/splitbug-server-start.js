@@ -33,5 +33,6 @@ splitBugServer.configure(function(error) {
     } else {
         console.log("Error occurred while configuring SplitBug server.");
         console.log(error);
+        console.log(error.stack);
     }
 });
