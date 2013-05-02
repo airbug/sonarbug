@@ -1,0 +1,119 @@
+{
+    "archKey": "sonarbug",
+    "securityGroups": [
+        {
+            "groupName": "{{archKey}}-balancer",
+            "description": "{{archKey}}: security group for load balancer",
+            "region": "us-east-1",
+            "ipPermissions": [
+                {
+                    "fromPort": 22,
+                    "ipProtocol": "tcp",
+                    "toPort": 22,
+                    "ipRanges": [
+                        {
+                            "cidrIp": "0.0.0.0/0"
+                        }
+                    ]
+                },
+                {
+                    "fromPort": 80,
+                    "ipProtocol": "tcp",
+                    "toPort": 80,
+                    "ipRanges": [
+                        {
+                            "cidrIp": "0.0.0.0/0"
+                        }
+                    ]
+                },
+                {
+                    "fromPort": 0,
+                    "ipProtocol": "tcp",
+                    "toPort": 65535,
+                    "userIdGroupPairs": [
+                        {
+                            "groupName": "{{archKey}}-balancer"
+                        }
+                    ]
+                },
+                {
+                    "fromPort": 0,
+                    "ipProtocol": "udp",
+                    "toPort": 65535,
+                    "userIdGroupPairs": [
+                        {
+                            "groupName": "{{archKey}}-balancer"
+                        }
+                    ]
+                },
+                {
+                    "fromPort": -1,
+                    "ipProtocol": "icmp",
+                    "toPort": -1,
+                    "userIdGroupPairs": [
+                        {
+                            "groupName": "{{archKey}}-balancer"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "groupName": "{{archKey}}-application",
+            "description": "{{archKey}}: security group for application",
+            "region": "us-east-1",
+            "ipPermissions": [
+                {
+                    "fromPort": 22,
+                    "ipProtocol": "tcp",
+                    "toPort": 22,
+                    "ipRanges": [
+                        {
+                            "cidrIp": "0.0.0.0/0"
+                        }
+                    ]
+                },
+                {
+                    "fromPort": 0,
+                    "ipProtocol": "tcp",
+                    "toPort": 65535,
+                    "userIdGroupPairs": [
+                        {
+                            "groupName": "{{archKey}}-application"
+                        }
+                    ]
+                },
+                {
+                    "fromPort": 0,
+                    "ipProtocol": "udp",
+                    "toPort": 65535,
+                    "userIdGroupPairs": [
+                        {
+                            "groupName": "{{archKey}}-application"
+                        }
+                    ]
+                },
+                {
+                    "fromPort": -1,
+                    "ipProtocol": "icmp",
+                    "toPort": -1,
+                    "userIdGroupPairs": [
+                        {
+                            "groupName": "{{archKey}}-application"
+                        }
+                    ]
+                },
+                {
+                    "fromPort": 3000,
+                    "ipProtocol": "tcp",
+                    "toPort": 3000,
+                    "userIdGroupPairs": [
+                        {
+                            "groupName": "{{archKey}}-balancer"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
