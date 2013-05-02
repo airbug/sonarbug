@@ -122,8 +122,8 @@ var SplitBug = Class.extend(Obj, {
             if(!this.configureStarted) {
                 this.configureStarted = true;
                 var clientConfig = {
-                    port: params.port || 8080,
-                    host: params.host || "http://localhost"
+                    port: params.port || 80,
+                    host: params.host || "http://splitbug.com"
                 };
                 this.splitBugClient = new SplitBugClient(clientConfig);
                 this.setupSplitTestUser(function(error) {
