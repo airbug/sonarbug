@@ -37,7 +37,7 @@ buildProperties({
     sonarbug: {
         packageJson: {
             name: "sonarbug",
-            version: "0.0.4",
+            version: "0.0.5",
             main: "./lib/SonarBug.js",
             dependencies: {
                 "aws-sdk": "0.9.x",
@@ -69,7 +69,8 @@ buildProperties({
             "../bugunit/projects/bugunit/js/scripts"
         ],
         testPaths: [
-            "../bugjs/projects/bugjs/js/test"
+            "../bugjs/projects/bugjs/js/test",
+            "./projects/sonarbug/js/test"
         ]
     },
     sonarbugclient: {

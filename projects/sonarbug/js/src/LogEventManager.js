@@ -79,9 +79,8 @@ var LogEventManager = Class.extend(EventDispatcher, {
      *
      */
     decrementMoveCount: function(){
-        var moveCount = this.moveCount;
-        moveCount -= 1;
-        if (moveCount === 0) {
+        this.moveCount -= 1;
+        if (this.moveCount === 0) {
             this.dispatchEvent(new Event("ready-to-package"));
             console.log("EventLogManager-" + this.name, "dispatched event: 'ready-to-package'");
         }
