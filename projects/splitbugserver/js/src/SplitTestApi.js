@@ -11,7 +11,6 @@
 //@Require('TypeUtil')
 //@Require('UuidGenerator')
 //@Require('WeightedRandomizer')
-//@Require('bugboil.BugBoil')
 //@Require('bugflow.BugFlow')
 //@Require('bugfs.BugFs')
 //@Require('riak.RiakDb')
@@ -35,7 +34,6 @@ var Map =                   bugpack.require('Map');
 var TypeUtil =              bugpack.require('TypeUtil');
 var UuidGenerator =         bugpack.require('UuidGenerator');
 var WeightedRandomizer =    bugpack.require('WeightedRandomizer');
-var BugBoil =               bugpack.require('bugboil.BugBoil');
 var BugFlow =               bugpack.require('bugflow.BugFlow');
 var BugFs =                 bugpack.require('bugfs.BugFs');
 var RiakDb =                bugpack.require('riak.RiakDb');
@@ -46,7 +44,7 @@ var SplitTest =             bugpack.require('splitbug.SplitTest');
 // Simplify References
 //-------------------------------------------------------------------------------
 
-var $foreachParallel =  BugBoil.$foreachParallel;
+var $foreachParallel =  BugFlow.$foreachParallel;
 var $parallel =         BugFlow.$parallel;
 var $series =           BugFlow.$series;
 var $task =             BugFlow.$task;
@@ -287,7 +285,7 @@ var SplitTestApi = {
                 })
             ]),
             $task(function(flow) {
-                $foreachParallel(splitTestsObject.splitTests, function(boil, splitTestObject) {
+                $foreachParallel(splitTestsObject.splitTests, function(flow, splitTestObject) {
                     if (splitTestObject.name) {
                         SplitTestApi.getSplitTestByName(splitTestObject.name, function(error, splitTest) {
                             if (!error) {
@@ -324,17 +322,17 @@ var SplitTestApi = {
                                     console.log(JSON.stringify(splitTest.toObject()));
 
                                     SplitTestApi.saveSplitTest(splitTest, function(error) {
-                                        boil.bubble(error);
+                                        flow.complete(error);
                                     });
                                 } else {
-                                    boil.bubble();
+                                    flow.complete();
                                 }
                             } else {
-                                boil.bubble(error);
+                                flow.complete(error);
                             }
                         });
                     } else {
-                        boil.bubble(new Error("Error processing split test file. Split test must have a name. splitTest:" +
+                        flow.complete(new Error("Error processing split test file. Split test must have a name. splitTest:" +
                             JSON.stringify(splitTestObject)));
                     }
                 }).execute(function(error) {
@@ -348,7 +346,7 @@ var SplitTestApi = {
                 console.log("About to deactivate these split tests");
                 console.log(splitTestsToDeactivate);
 
-                $foreachParallel(splitTestsToDeactivate, function(boil, splitTestToDeactivate) {
+                $foreachParallel(splitTestsToDeactivate, function(flow, splitTestToDeactivate) {
 
                     if (splitTestToDeactivate.getName()) {
                         splitTestToDeactivate.setActive(false);
@@ -358,7 +356,7 @@ var SplitTestApi = {
                         console.log(JSON.stringify(splitTestToDeactivate.toObject()));
 
                         SplitTestApi.saveSplitTest(splitTestToDeactivate, function(error) {
-                            boil.bubble(error);
+                            flow.complete(error);
                         });
                     } else {
 

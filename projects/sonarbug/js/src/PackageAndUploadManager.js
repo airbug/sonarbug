@@ -11,7 +11,6 @@
 //@Require('aws.AwsConfig')
 //@Require('aws.S3Api')
 //@Require('aws.S3Bucket')
-//@Require('bugboil.BugBoil')
 //@Require('bugflow.BugFlow')
 //@Require('bugfs.BugFs')
 //@Require('bugfs.Path')
@@ -21,7 +20,6 @@
 // Common Modules
 //-------------------------------------------------------------------------------
 
-var AWS         = require('aws-sdk');
 var bugpack     = require('bugpack').context();
 var fs          = require('fs');
 var fstream     = require("fstream");
@@ -39,7 +37,6 @@ var Obj         = bugpack.require('Obj');
 var AwsConfig   = bugpack.require('aws.AwsConfig');
 var S3Api       = bugpack.require('aws.S3Api');
 var S3Bucket    = bugpack.require('aws.S3Bucket');
-var BugBoil     = bugpack.require('bugboil.BugBoil');
 var BugFlow     = bugpack.require('bugflow.BugFlow');
 var BugFs       = bugpack.require('bugfs.BugFs');
 var Path        = bugpack.require('bugfs.Path');
@@ -49,8 +46,8 @@ var Path        = bugpack.require('bugfs.Path');
 // Simplify References
 //-------------------------------------------------------------------------------
 
+var $foreachParallel    = BugFlow.$foreachParallel;
 var $if                 = BugFlow.$if;
-var $foreachParallel    = BugBoil.$foreachParallel;
 var $series             = BugFlow.$series;
 var $task               = BugFlow.$task;
 
@@ -235,7 +232,7 @@ var PackageAndUploadManager = Class.extend(Obj, {
             $task(function(flow) {
                 fs.readdir(directoryPath, function(error, directories){
                     if(!error){
-                        $foreachParallel(directories, function(boil, directory) {
+                        $foreachParallel(directories, function(flow, directory) {
                             _this.packageAndUpload(directory, function(error, directory) {
                                 BugFs.deleteDirectory(path.resolve(directoryPath, directory), true, false, function(error){
                                     if(!error){
@@ -243,7 +240,7 @@ var PackageAndUploadManager = Class.extend(Obj, {
                                     } else {
                                         console.log("Failed to remove directory", directory);
                                     }
-                                    boil.bubble(error);
+                                    flow.complete(error);
                                 });
                             });
                         }).execute(function(error){
@@ -302,10 +299,10 @@ var PackageAndUploadManager = Class.extend(Obj, {
             $task(function(flow){
                 fs.readdir(outputDirectoryPath, function(error, files){
                     if(!error){
-                        $foreachParallel(files, function(boil, file){
+                        $foreachParallel(files, function(flow, file){
                             var outputFilePath = outputDirectoryPath + '/' + file;
                             _this.upload(outputFilePath, function(error){
-                                boil.bubble(error);
+                                flow.complete(error);
                             });
                         }).execute(function(error){
                             if(!error){

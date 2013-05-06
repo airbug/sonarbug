@@ -8,7 +8,6 @@
 
 //@Require('Class')
 //@Require('Obj')
-//@Require('bugboil.BugBoil')
 //@Require('bugflow.BugFlow')
 //@Require('bugfs.BugFs')
 //@Require('riak.RiakDb')
@@ -29,7 +28,6 @@ var path = require('path');
 
 var Class =         bugpack.require('Class');
 var Obj =           bugpack.require('Obj');
-var BugBoil =       bugpack.require('bugboil.BugBoil');
 var BugFlow =       bugpack.require('bugflow.BugFlow');
 var BugFs =         bugpack.require('bugfs.BugFs');
 var RiakDb =        bugpack.require('riak.RiakDb');
@@ -40,7 +38,7 @@ var SplitTestApi =  bugpack.require('splitbug.SplitTestApi');
 // Simplify References
 //-------------------------------------------------------------------------------
 
-var $forInParallel =    BugBoil.$forInParallel;
+var $forInParallel =    BugFlow.$forInParallel;
 var $series =           BugFlow.$series;
 var $task =             BugFlow.$task;
 
@@ -237,7 +235,7 @@ var CountTestsTask = Class.extend(Obj, {
      * @param {function(Error)} callback
      */
     updateSplitTests: function(splitTestsMapObject, callback) {
-        $forInParallel(splitTestsMapObject, function(boil, testName, splitTestObject) {
+        $forInParallel(splitTestsMapObject, function(flow, testName, splitTestObject) {
             if (testName) {
                 SplitTestApi.getSplitTestByName(testName, function(error, splitTest) {
                     if (!error) {
@@ -247,17 +245,17 @@ var CountTestsTask = Class.extend(Obj, {
                             splitTest.setNumberSessions(splitTestObject.numberSessions);
                             splitTest.setWeight(splitTestObject.weight);
                             SplitTestApi.saveSplitTest(splitTest, function(error) {
-                                boil.bubble(error);
+                                flow.complete(error);
                             });
                         } else {
-                            boil.bubble();
+                            flow.complete();
                         }
                     } else {
-                        boil.bubble(error);
+                        flow.complete(error);
                     }
                 });
             } else {
-                boil.bubble();
+                flow.complete();
             }
         }).execute(callback);
     }
