@@ -314,6 +314,9 @@ var SonarBug = Class.extend(Obj, {
                 data.visitID = visitID;
 
                 if(logFilePath){
+                    //TODO BRN: Improve this to use BugFs so that we don't hit the open file handle maximum
+                    //TODO BRN: What happens which several writes against the open file happen at the same time?
+
                     fs.appendFile(logFilePath, JSON.stringify(data) + '\n', function(){});
                     console.log("tracklog:", "eventName:", data.eventName, "userID:", userID, "visitID:", visitID);
                 } else {
@@ -337,6 +340,10 @@ var SonarBug = Class.extend(Obj, {
 
                 if(logFilePath){
                     console.log("disconnect:", "userID:", userID, "visitID:", visitID);
+
+                    //TODO BRN: Improve this to use BugFs so that we don't hit the open file handle maximum
+                    //TODO BRN: What happens which several writes against the open file happen at the same time?
+
                     fs.appendFile(logFilePath, JSON.stringify(data) + '\n', function(error){
                         fs.exists(completedUserFolderPath, function(exists){
                             if(!exists){

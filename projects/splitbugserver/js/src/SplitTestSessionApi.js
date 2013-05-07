@@ -32,7 +32,6 @@ var path = require('path');
 var MathUtil =          bugpack.require('MathUtil');
 var TypeUtil =          bugpack.require('TypeUtil');
 var UuidGenerator =     bugpack.require('UuidGenerator');
-var BugBoil =           bugpack.require('bugboil.BugBoil');
 var BugFlow =           bugpack.require('bugflow.BugFlow');
 var BugFs =             bugpack.require('bugfs.BugFs');
 var RiakDb =            bugpack.require('riak.RiakDb');
@@ -45,7 +44,6 @@ var SplitTestUserApi =  bugpack.require('splitbug.SplitTestUserApi');
 // Simplify References
 //-------------------------------------------------------------------------------
 
-var $foreachParallel =  BugBoil.$foreachParallel;
 var $series =           BugFlow.$series;
 var $task =             BugFlow.$task;
 

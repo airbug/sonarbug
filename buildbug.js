@@ -59,7 +59,6 @@ buildProperties({
             "../bugjs/projects/bugjs/js/src",
             "../bugjs/projects/bugtrace/js/src",
             '../bugjs/projects/bugflow/js/src',
-            '../bugjs/projects/bugboil/js/src',
             "../bugjs/projects/bugfs/js/src",
             "../bugjs/projects/annotate/js/src",
             "../bugunit/projects/bugunit/js/src"
@@ -88,7 +87,6 @@ buildProperties({
             "../bugjs/projects/bugjs/js/src",
             "../bugjs/projects/bugtrace/js/src",
             '../bugjs/projects/bugflow/js/src',
-            '../bugjs/projects/bugboil/js/src',
             "../bugjs/projects/bugfs/js/src",
             "../bugjs/projects/annotate/js/src",
             "../bugunit/projects/bugunit/js/src"
@@ -123,7 +121,6 @@ buildProperties({
             "./projects/splitbug/js/src",
             "./projects/splitbugserver/js/src",
             "../bugjs/projects/annotate/js/src",
-            "../bugjs/projects/bugboil/js/src",
             "../bugjs/projects/bugflow/js/src",
             "../bugjs/projects/bugfs/js/src",
             "../bugjs/projects/bugjs/js/src",
@@ -155,7 +152,6 @@ buildProperties({
             "../bugjs/projects/bugjs/js/src",
             "../bugjs/projects/bugtrace/js/src",
             '../bugjs/projects/bugflow/js/src',
-            '../bugjs/projects/bugboil/js/src',
             "../bugjs/projects/bugfs/js/src",
             "../bugjs/projects/annotate/js/src",
             "../bugunit/projects/bugunit/js/src"
