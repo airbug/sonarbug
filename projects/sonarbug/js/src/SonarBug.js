@@ -547,7 +547,7 @@ var SonarBug = Class.extend(Obj, {
                         }
                     });
                 } else {
-                    oldCompletedFolderLogEventManager.onceOn("ready-to-package", function(){
+                    oldCompletedFolderLogEventManager.onceOn("ready-to-package", function(event){
                         BugFs.moveDirectory(oldCompletedFolderPath, toPackageFoldersPath, function(error){
                             if(!error){
                                 delete _this.logEventManagers[oldCompletedFolderName];

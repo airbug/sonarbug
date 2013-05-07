@@ -81,8 +81,7 @@ var LogEventManager = Class.extend(EventDispatcher, {
     decrementMoveCount: function(){
         this.moveCount -= 1;
         if (this.moveCount === 0) {
-            this.dispatchEvent(new Event("ready-to-package"));
-            console.log("EventLogManager-" + this.name, "dispatched event: 'ready-to-package'");
+            this.dispatchReadyToPackageEvent();
         }
     },
 
@@ -95,22 +94,15 @@ var LogEventManager = Class.extend(EventDispatcher, {
 
 
     //-------------------------------------------------------------------------------
-    // Public Methods
+    // Private Methods
     //-------------------------------------------------------------------------------
 
     /**
-     * @param {string} eventType
-     * @param {function} listenerFunction
-     * @param {} listenerContext
+     * @private
      */
-    onceOn: function(eventType, listenerFunction, listenerContext){
-        var _this = this;
-        var newListenerFunction = function(){
-            listenerFunction();
-            _this.removeEventListener(eventType, newListenerFunction, listenerContext);
-        };
-
-        this.addEventListener(eventType, newListenerFunction, listenerContext);
+    dispatchReadyToPackageEvent: function(){
+        this.dispatchEvent(new Event("ready-to-package"));
+        console.log("EventLogManager-" + this.name, "dispatched event: 'ready-to-package'");
     }
 });
 

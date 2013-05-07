@@ -56,15 +56,14 @@ var getMoveCountTest = {
 
     test: function(test) {
 
+        var defaultCount    = this.logEventManager.getMoveCount();
         this.logEventManager.moveCount = 3;
         var count       = this.logEventManager.getMoveCount();
-        this.logEventManager.moveCount = 0;
-        var countTwo    = this.logEventManager.getMoveCount();
 
+        test.assertEqual(defaultCount, 0,
+            "Assert getMoveCount returns the correct default moveCount of 0");
         test.assertEqual(count, 3,
             "Assert getMoveCount returns the moveCount set to 3");
-        test.assertEqual(count, 0,
-            "Assert getMoveCount returns the moveCount set to 0");
     }
 };
 annotate(getMoveCountTest).with(
@@ -124,17 +123,19 @@ var decrementMoveCountTest = {
         var countZero    = this.logEventManager.getMoveCount();
         this.logEventManager.decrementMoveCount();
         var countOne    = this.logEventManager.getMoveCount();
-        this.logEventManager.incrementMoveCount();
+        this.logEventManager.decrementMoveCount();
         var countTwo    = this.logEventManager.getMoveCount();
+        this.logEventManager.decrementMoveCount();
+        var countThree  = this.logEventManager.getMoveCount();
 
         test.assertEqual(countZero, 3,
             "Assert the value of the moveCount property set to 3");
         test.assertEqual(countOne, 2,
             "Assert the value of the moveCount after one decrementMoveCount is 2");
         test.assertEqual(countTwo, 1,
-            "Assert the value of the moveCount after one decrementMoveCount is 1");
+            "Assert the value of the moveCount after two decrementMoveCount is 1");
         test.assertEqual(countThree, 0,
-            "Assert the value of the moveCount after one decrementMoveCount is 0");
+            "Assert the value of the moveCount after three decrementMoveCount is 0");
     }
 };
 annotate(decrementMoveCountTest).with(
