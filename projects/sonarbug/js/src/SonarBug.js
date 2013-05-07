@@ -45,6 +45,7 @@ var UuidGenerator           = bugpack.require('UuidGenerator');
 // Simplify References
 //-------------------------------------------------------------------------------
 
+var $forInParallel      = BugFlow.$forInParallel;
 var $if                 = BugFlow.$if;
 var $series             = BugFlow.$series;
 var $parallel           = BugFlow.$parallel;
@@ -525,43 +526,119 @@ var SonarBug = Class.extend(Obj, {
         var newCompletedFolderLogEventManager   = this.logEventManagers[newCompletedFolderName] = new LogEventManager(newCompletedFolderName);
 
         config.currentCompletedId ++;
-        // Make the new completedFolder
-        fs.mkdir(newCompletedFolderPath, 0777, function(error){
-            // Update the config file
-            fs.writeFile(path.resolve(__dirname, '..', 'sonarbug.config.json'), JSON.stringify(config), function(error){
-                console.log('Config file updated with new currentCompletedId');
-                // rotate currentCompletedFolder
-                _this.currentCompletedFolderName = newCompletedFolderName;
-                _this.currentCompletedFolderPath = newCompletedFolderPath;
-                console.log("Completed Folder rotated to", newCompletedFolderName);
 
-                // Move oldCompletedFolder to toPackageFolders folder OR add a listener
-                if (!oldCompletedFolderLogEventManager){
-                    //Do nothing
-                } else if (oldCompletedFolderLogEventManager.getMoveCount() === 0){
-                    BugFs.moveDirectory(oldCompletedFolderPath, toPackageFoldersPath, function(error){
-                        if(!error){
-                            delete _this.logEventManagers[oldCompletedFolderName];
-                        } else {
-                            console.log(error);
-                        }
-                    });
-                } else {
-                    oldCompletedFolderLogEventManager.onceOn("ready-to-package", function(event){
-                        BugFs.moveDirectory(oldCompletedFolderPath, toPackageFoldersPath, function(error){
-                            if(!error){
-                                delete _this.logEventManagers[oldCompletedFolderName];
-                            } else {
-                                console.log(error);
-                            }
-                        });
-                    });
-                }
+        $series([
+            $task(function(flow){
+                _this.createNewCompletedFolder(newCompletedFolderPath, function(error){
+                    flow.complete(error);
+                });
+            }),
+            $task(function(flow){
+                var configFilePath  = path.resolve(__dirname, '..', 'sonarbug.config.json');
+                var newConfig       = JSON.stringify(config);
+                _this.updateConfigFile(configFilePath, newConfig, function(error){
+                    if(!error){
+                        console.log('Config file updated with new currentCompletedId');
+                    }
+                    flow.complete(error);
+                });
+            }),
+            $task(function(flow){
+                _this.rotateToNewCompletedFolder(newCompletedFolderName, newCompletedFolderPath, function(error){
+                    flow.complete(error);
+                })
+            }),
+            $task(function(flow){
+                _this.updateLogEventManagers(function(error){
+                    flow.complete(error);
+                });
+            })
+        ]).execute(callback);
+    },
 
-                if(callback){
-                    callback();
-                }
-            });
+    /**
+     * @private
+     * @param {string} newCompletedFolderPath
+     * @param {function(error)} callback
+     */
+    createNewCompletedFolder: function(newCompletedFolderPath, callback){
+        fs.mkdir(newCompletedFolderPath, 0777, callback);
+    },
+
+    /**
+     * @private
+     * @param {string} newCompletedFolderName
+     * @param {string} newCompletedFolderPath
+     * @param {function(error)} callback
+     */
+    rotateToNewCompletedFolder: function(newCompletedFolderName, newCompletedFolderPath, callback){
+        this.currentCompletedFolderName = newCompletedFolderName;
+        this.currentCompletedFolderPath = newCompletedFolderPath;
+        console.log("Completed Folder rotated to", newCompletedFolderName);
+        callback();
+    },
+
+    /**
+     * @private
+     * @param {string} configFilePath
+     * @type {{
+     *  {
+     *    "currentCompletedId":100,
+     *    "logRotationInterval":60000, 
+     *    "cronJobs": {
+     *        "packageAndUpload": {
+     *            "cronTime": '00 *\/10 * * * *', //seconds minutes hours day-of-month months days-of-week (00 *\/10 * * * * is every ten minutes )
+     *            "start": false,
+     *            "timeZone": "America/San_Francisco"
+     *        }
+     *    }
+     * }
+     * }}
+     * @param {function(error)} callback
+     */
+    updateConfigFile: function(configFilePath, newConfig, callback){
+        fs.writeFile(configFilePath, newConfig, callback);
+    },
+
+    /**
+     * @private
+     * @param {function(error)} callback
+     */
+    updateLogEventManagers: function(callback){
+        var _this = this;
+        var logEventManagers = this.logEventManagers;
+        $forInParallel(logEventManagers, function(flow, folderName, logEventManager){
+            if(logEventManager.getMoveCount() === 0){
+                var folderPath = Path.resolve(_this.completedFoldersPath + '/' + folderName);
+                _this.moveCompletedFolderToToPackageFolder(folderName, function(error){
+                    flow.complete(error);
+                })
+            } else {
+                logEventManager.onceOn("ready-to-package", function(event){
+                    _this.moveCompletedFolderToToPackageFolder(folderName, function(error){
+                        flow.complete(error);
+                    });
+                });
+            }
+        }).execute(callback);
+    },
+
+    /**
+     * @private
+     * @param {string} completedFolderName
+     * @param {function(error)} callback
+     */
+    moveCompletedFolderToToPackageFolder: function(completedFolderName, callback){
+        var completedFoldersPath    = this.completedFoldersPath;
+        var toPackageFoldersPath    = this.toPackageFoldersPath;
+        var completedFolderPath     = path.resolve(completedFoldersPath, completedFolderName);
+        BugFs.moveDirectory(completedFolderPath, toPackageFoldersPath, function(error){
+            if(!error){
+                delete _this.logEventManagers[folderName];
+            } else {
+                console.log(error);
+            }
+            callback(error);
         });
     },
 
