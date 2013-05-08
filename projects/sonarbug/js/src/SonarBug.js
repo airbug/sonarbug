@@ -78,7 +78,7 @@ var SonarBug = Class.extend(Obj, {
          * @type {{
          *  {
          *    "currentCompletedId":100,
-         *    "logRotationInterval":60000, 
+         *    "logRotationInterval":60000,
          *    "cronJobs": {
          *        "packageAndUpload": {
          *            "cronTime": '00 *\/10 * * * *', //seconds minutes hours day-of-month months days-of-week (00 *\/10 * * * * is every ten minutes )
@@ -177,11 +177,9 @@ var SonarBug = Class.extend(Obj, {
                 _this.logsManager.initialize(_this.config, _this.configFilePath, function(error){
                     if(!error){
                         console.log('Log folders initialized and updated');
-                        console.log(_this.logsManager);
                         flow.complete();
                     } else {
                         console.log(error);
-                        console.log(_this.logsManager);
                         flow.complete();
                     }
                 });

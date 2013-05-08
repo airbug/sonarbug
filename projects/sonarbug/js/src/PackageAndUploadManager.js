@@ -231,7 +231,12 @@ var PackageAndUploadManager = Class.extend(Obj, {
             }),
             $task(function(flow) {
                 fs.readdir(directoryPath, function(error, directories){
-                    if(!error){
+                    if(error){
+                        flow.error(error);
+                    } else if(directories.length === 0){
+                        console.log("There are no directories package and upload in", directoryPath);
+                        flow.complete();
+                    } else if(directories.length > 0){
                         $foreachParallel(directories, function(flow, directory) {
                             _this.packageAndUpload(directory, function(error, directory) {
                                 BugFs.deleteDirectory(path.resolve(directoryPath, directory), true, false, function(error){
@@ -245,12 +250,10 @@ var PackageAndUploadManager = Class.extend(Obj, {
                             });
                         }).execute(function(error){
                             if(!error){
-                                console.log("Successfully packaged and uploaded each directory in", directoryPath);
+                                console.log("Successfully packaged and uploaded all available directories in", directoryPath);
                             }
                             flow.complete(error);
                         });
-                    } else {
-                        flow.error(error);
                     }
                 });
             })
@@ -298,7 +301,12 @@ var PackageAndUploadManager = Class.extend(Obj, {
             }),
             $task(function(flow){
                 fs.readdir(outputDirectoryPath, function(error, files){
-                    if(!error){
+                    if(error){
+                        flow.error(error);
+                    } else if(files.length === 0){
+                        console.log("There are no files to upload in", outputDirectoryPath);
+                        flow.complete();
+                    } else if(files.length > 0){
                         $foreachParallel(files, function(flow, file){
                             var outputFilePath = outputDirectoryPath + '/' + file;
                             _this.upload(outputFilePath, function(error){
@@ -310,8 +318,6 @@ var PackageAndUploadManager = Class.extend(Obj, {
                             }
                             flow.complete(error);
                         });
-                    } else {
-                        flow.error(error);
                     }
                 });
             })

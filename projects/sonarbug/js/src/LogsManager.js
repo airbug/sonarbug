@@ -9,7 +9,6 @@
 //@Require('Class')
 //@Require('Obj')
 //@Require('bugflow.BugFlow')
-//@Require('bugfs.Path')
 //@Require('sonarbug.LogEventManager')
 //@Require('sonarbug.PackageAndUploadManager')
 
@@ -56,24 +55,89 @@ var LogsManager = Class.extend(Obj, {
 
         this._super();
 
+        //-------------------------------------------------------------------------------
+        // Variables
+        //-------------------------------------------------------------------------------
+
+        /**
+         * @type {{
+         *  {
+         *    "currentCompletedId":1,
+         *    "logRotationInterval":60000,
+         *    "cronJobs": {
+         *        "packageAndUpload": {
+         *            "cronTime": '00 15 *\/1 * * *', //seconds minutes hours day-of-month months days-of-week (00 15 *\/1 * * * is every hour at quarter after the hour
+         *            "start": false,
+         *            "timeZone": "America/San_Francisco"
+         *        }
+         *    }
+         * }
+         * }}
+         */
         this.config                     = null;
+
+        /**
+         * @type {string}
+         */
         this.configFilePath             = null;
+
+        /**
+         * @type {{}}
+         */
         this.logEventManagers           = null;
+
+        /**
+         * @type {string}
+         */
         this.activeFoldersPath          = null;
+
+        /**
+         * @type {string}
+         */
         this.completedFoldersPath       = null;
+
+        /**
+         * @type {string}
+         */
         this.logsPath                   = null;
+
+        /**
+         * @type {string}
+         */
         this.packagedFolderPath         = null;
+
+        /**
+         * @type {string}
+         */
         this.toPackageFoldersPath       = null;
+
+        /**
+         * @type {string}
+         */
         this.currentCompletedFolderName = null;
+
+        /**
+         * @type {number}
+         */
         this.currentCompletedFolderId   = null;
+
+        /**
+         * @type {string}
+         */
         this.currentCompletedFolderPath = null;
     },
 
+    //-------------------------------------------------------------------------------
+    // Methods
+    //-------------------------------------------------------------------------------
+
     /**
+     * @param {{}} config
+     * @param {string} configFilePath
      * @param {function()} callback
      */
     initialize: function(config, configFilePath, callback){
-        console.log("initializing LogsManager...");
+        console.log("Initializing LogsManager...");
         var _this           = this;
         var callback        = callback || function(){};
 
@@ -100,61 +164,11 @@ var LogsManager = Class.extend(Obj, {
                 }),
 
                 //-------------------------------------------------------------------------------
-                // Create Folders
+                // Create Log Folders
                 //-------------------------------------------------------------------------------
                 $task(function(flow){
-                    fs.exists(logsPath, function(exists){
-                        if(!exists){
-                            fs.mkdir(logsPath, 0777, function(error){
-                                flow.complete(error);
-                            });
-                        } else {
-                            flow.complete();
-                        }
-                    });
-                }),
-                $task(function(flow){
-                    fs.exists(toPackageFoldersPath, function(exists){
-                        if(!exists){
-                            fs.mkdir(toPackageFoldersPath, 0777, function(error){
-                                flow.complete(error);
-                            });
-                        } else {
-                            flow.complete();
-                        }
-                    });
-                }),
-                $task(function(flow){
-                    fs.exists(completedFoldersPath, function(exists){
-                        if(!exists){
-                            fs.mkdir(completedFoldersPath, 0777, function(error){
-                                flow.complete(error);
-                            });
-                        } else {
-                            flow.complete();
-                        }
-                    });
-                }),
-                $task(function(flow){
-                    fs.exists(activeFoldersPath, function(exists){
-                        if(!exists){
-                            fs.mkdir(activeFoldersPath, 0777, function(error){
-                                flow.complete(error);
-                            });
-                        } else {
-                            flow.complete();
-                        }
-                    });
-                }),
-                $task(function(flow){
-                    fs.exists(packagedFolderPath, function(exists){
-                        if(!exists){
-                            fs.mkdir(packagedFolderPath, 0777, function(error){
-                                flow.complete(error);
-                            });
-                        } else {
-                            flow.complete();
-                        }
+                    _this.createLogFolders(function(error){
+                        flow.complete(error);
                     });
                 })
             ]),
@@ -163,46 +177,181 @@ var LogsManager = Class.extend(Obj, {
             // Move Directory Contents and Rotate Log Folders
             //-------------------------------------------------------------------------------
             $task(function(flow){
-                console.log("Folders all created");
-                
                 BugFs.moveDirectoryContents(activeFoldersPath, _this.currentCompletedFolderPath, function(error){
                     flow.complete(error);
                 });
             }),
             $task(function(flow){
                 BugFs.moveDirectoryContents(completedFoldersPath, toPackageFoldersPath, function(error){
-                    if(!error){
-                        _this.rotateLogs(function(error){
-                            flow.complete(error);
-                        });
-                    } else {
-                        flow.error(error);
-                    }
+                    flow.complete(error);
                 });
-
             }),
             $task(function(flow){
-                var packageAndUploadManager = new PackageAndUploadManager();
-                packageAndUploadManager.initialize(function(error){
-                    if(!error){
-                        packageAndUploadManager.uploadEach(packagedFolderPath, function(error){
-                            packageAndUploadManager = null;
-                            if(!error){
-                                console.log('Packaged log files uploaded and removed');
-                                flow.complete();
-                            } else{
-                                flow.error(error);
-                            }
-                        });
-                    } else {
-                        flow.error(error);
-                    }
+                 _this.rotateLogs(function(error){
+                        flow.complete(error);
+                });
+            }),
+
+            //-------------------------------------------------------------------------------
+            // Upload Packed Files
+            //-------------------------------------------------------------------------------
+            $task(function(flow){
+                _this.uploadPackedFiles(function(error){
+                    flow.complete(error);
                 });
             })
         ]).execute(callback);
     },
 
     /**
+     * @param {string} logFilePath
+     * @param {{*}} data
+     * @param {function(error)} callback
+     */
+    appendToLogFile: function(logFilePath, data, callback){
+        var callback = callback || function(){};
+        if(logFilePath){
+            //TODO BRN: Improve this to use BugFs so that we don't hit the open file handle maximum
+            //TODO BRN: What happens which several writes against the open file happen at the same time?
+
+            fs.appendFile(logFilePath, JSON.stringify(data) + '\n', function(error){
+                callback(error);
+            });
+            console.log("tracklog:", "eventName:", data.eventName, "userID:", data.userID, "visitID:", data.visitID);
+        } else {
+            console.log('tracklog: Error: logFilePath is undefined');
+            callback(new Error('logFilePath is undefined'));
+        }
+    },
+
+    /**
+     * @param {string} logFilePath
+     * @param {string} currentCompletedFolderName
+     * @param {string} completedUserFolderPath
+     * @param {function(error)} callback
+     */
+    moveLogFileToCompletedUserFolder: function(logFilePath, currentCompletedFolderName, completedUserFolderPath, callback){
+        var logEventManager = this.logEventManagers[currentCompletedFolderName];
+
+        BugFs.move(logFilePath, completedUserFolderPath, function(error){
+            if(!error){
+                logEventManager.decrementMoveCount();
+            }
+            callback(error);
+        });
+    },
+
+
+    //-------------------------------------------------------------------------------
+    // Private Methods
+    //-------------------------------------------------------------------------------
+
+    /**
+     * @param {function(error)} callback
+     */
+    createLogFolders: function(callback){
+        var activeFoldersPath           = this.activeFoldersPath;
+        var completedFoldersPath        = this.completedFoldersPath;
+        var logsPath                    = this.logsPath;
+        var packagedFolderPath          = this.packagedFolderPath;
+        var toPackageFoldersPath        = this.toPackageFoldersPath;
+
+        $series([
+            $task(function(flow){
+                 fs.exists(logsPath, function(exists){
+                     if(!exists){
+                         fs.mkdir(logsPath, 0777, function(error){
+                             flow.complete(error);
+                         });
+                     } else {
+                         flow.complete();
+                     }
+                 });
+             }),
+            $parallel([
+                $task(function(flow){
+                     fs.exists(toPackageFoldersPath, function(exists){
+                         if(!exists){
+                             fs.mkdir(toPackageFoldersPath, 0777, function(error){
+                                 flow.complete(error);
+                             });
+                         } else {
+                             flow.complete();
+                         }
+                     });
+                 }),
+                 $task(function(flow){
+                     fs.exists(completedFoldersPath, function(exists){
+                         if(!exists){
+                             fs.mkdir(completedFoldersPath, 0777, function(error){
+                                 flow.complete(error);
+                             });
+                         } else {
+                             flow.complete();
+                         }
+                     });
+                 }),
+                 $task(function(flow){
+                     fs.exists(activeFoldersPath, function(exists){
+                         if(!exists){
+                             fs.mkdir(activeFoldersPath, 0777, function(error){
+                                 flow.complete(error);
+                             });
+                         } else {
+                             flow.complete();
+                         }
+                     });
+                 }),
+                 $task(function(flow){
+                     fs.exists(packagedFolderPath, function(exists){
+                         if(!exists){
+                             fs.mkdir(packagedFolderPath, 0777, function(error){
+                                 if(!error){
+                                     console.log("Log folders created");
+                                 }
+                                 flow.complete(error);
+                             });
+                         } else {
+                             flow.complete();
+                         }
+                     });
+                 })
+            ])
+        ]).execute(callback);
+    },
+
+    /**
+     * @private
+     * @param {string} newCompletedFolderPath
+     * @param {function(error)} callback
+     */
+    createNewCompletedFolder: function(newCompletedFolderPath, callback){
+        fs.mkdir(newCompletedFolderPath, 0777, callback);
+    },
+
+    /**
+     * @private
+     * @param {string} completedFolderName
+     * @param {function(error)} callback
+     */
+    moveCompletedFolderToToPackageFolderAndRemoveLogEventManager: function(completedFolderName, callback){
+        var _this = this;
+        var completedFoldersPath    = this.completedFoldersPath;
+        var toPackageFoldersPath    = this.toPackageFoldersPath;
+        var completedFolderPath     = path.resolve(completedFoldersPath, completedFolderName);
+
+        BugFs.moveDirectory(completedFolderPath, toPackageFoldersPath, function(error){
+            if(!error){
+                delete _this.logEventManagers[completedFolderName];
+            } else {
+                console.log(error);
+            }
+            callback(error);
+        });
+    },
+
+    /**
+     * @private
      * @param {function(error)} callback
      */
     rotateLogs: function(callback){
@@ -233,7 +382,6 @@ var LogsManager = Class.extend(Obj, {
                 flow.complete();
             }),
             $task(function(flow){
-                console.log("newCompletedFolderPath:", newCompletedFolderPath);
                 _this.createNewCompletedFolder(newCompletedFolderPath, function(error){
                     flow.complete(error);
                 });
@@ -245,7 +393,6 @@ var LogsManager = Class.extend(Obj, {
                 //TODO: SUNG How to make sure this doesn't interfere with other configs
                 var newConfig                       = JSON.stringify(_this.config);
 
-                console.log(_this);
                 _this.updateConfigFile(configFilePath, newConfig, function(error){
                     if(!error){
                         console.log('Config file updated with new currentCompletedId:', _this.config.currentCompletedId);
@@ -263,47 +410,6 @@ var LogsManager = Class.extend(Obj, {
                 flow.complete();
             })
         ]).execute(callback);
-    },
-
-    appendToLogFile: function(logFilePath, data, callback){
-        var callback = callback || function(){};
-        if(logFilePath){
-            //TODO BRN: Improve this to use BugFs so that we don't hit the open file handle maximum
-            //TODO BRN: What happens which several writes against the open file happen at the same time?
-
-            fs.appendFile(logFilePath, JSON.stringify(data) + '\n', function(error){
-                callback(error);
-            });
-            console.log("tracklog:", "eventName:", data.eventName, "userID:", data.userID, "visitID:", data.visitID);
-        } else {
-            console.log('tracklog: Error: logFilePath is undefined');
-            callback(new Error('logFilePath is undefined'));
-        }
-    },
-
-    moveLogFileToCompletedUserFolder: function(logFilePath, currentCompletedFolderName, completedUserFolderPath, callback){
-        var logEventManager = this.logEventManagers[currentCompletedFolderName];
-        
-        BugFs.move(logFilePath, completedUserFolderPath, function(error){
-            if(!error){
-                logEventManager.decrementMoveCount();
-            }
-            callback(error);
-        });
-    },
-
-
-    //-------------------------------------------------------------------------------
-    // Private Methods
-    //-------------------------------------------------------------------------------
-
-    /**
-     * @private
-     * @param {string} newCompletedFolderPath
-     * @param {function(error)} callback
-     */
-    createNewCompletedFolder: function(newCompletedFolderPath, callback){
-        fs.mkdir(newCompletedFolderPath, 0777, callback);
     },
 
     /**
@@ -365,25 +471,27 @@ var LogsManager = Class.extend(Obj, {
             }
         }).execute(callback);
     },
-
+    
     /**
      * @private
-     * @param {string} completedFolderName
      * @param {function(error)} callback
      */
-    moveCompletedFolderToToPackageFolderAndRemoveLogEventManager: function(completedFolderName, callback){
-        var _this = this;
-        var completedFoldersPath    = this.completedFoldersPath;
-        var toPackageFoldersPath    = this.toPackageFoldersPath;
-        var completedFolderPath     = path.resolve(completedFoldersPath, completedFolderName);
+    uploadPackedFiles: function(callback){
+        var packageAndUploadManager = new PackageAndUploadManager();
+        var packagedFolderPath = this.packagedFolderPath;
 
-        BugFs.moveDirectory(completedFolderPath, toPackageFoldersPath, function(error){
+        packageAndUploadManager.initialize(function(error){
             if(!error){
-                delete _this.logEventManagers[completedFolderName];
+                packageAndUploadManager.uploadEach(packagedFolderPath, function(error){
+                    packageAndUploadManager = null;
+                    if(!error){
+                        console.log('All available packaged log files uploaded and removed');
+                    }
+                    callback(error);
+                });
             } else {
-                console.log(error);
+                callback(error);
             }
-            callback(error);
         });
     }
 });
