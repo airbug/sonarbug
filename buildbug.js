@@ -75,7 +75,7 @@ buildProperties({
     sonarbugclient: {
         packageJson: {
             name: "sonarbugclient",
-            version: "0.0.4", //NOTE: This also needs to be updated in the SonarBugClient.js file to ensure proper versioning of log messages
+            version: "0.0.5", //NOTE: This also needs to be updated in the SonarBugClient.js file to ensure proper versioning of log messages
             main: "./lib/SonarBugClient.js",
             dependencies: {
                 bugpack: "https://s3.amazonaws.com/airbug/bugpack-0.0.5.tgz"
