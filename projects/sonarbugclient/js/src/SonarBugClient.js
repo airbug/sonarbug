@@ -136,8 +136,8 @@ var SonarBugClient = Class.extend(Obj, {
             "document": {},
             "navigator": {}
         };
-        var document    = document;
-        var navigator   = navigator;
+        var document    = window.document;
+        var navigator   = window.navigator;
 
         data.document.referrer          = document.referrer;
         data.navigator.appCodeName      = navigator.appCodeName;
@@ -154,7 +154,6 @@ var SonarBugClient = Class.extend(Obj, {
         data.navigator.vendor           = navigator.vendor;
         data.navigator.vendorSub        = navigator.vendorSub;
 
-        console.log("data:", data);
         this.track('connect', data);
     },
 
