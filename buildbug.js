@@ -37,7 +37,7 @@ buildProperties({
     sonarbug: {
         packageJson: {
             name: "sonarbug",
-            version: "0.0.5",
+            version: "0.0.6",
             main: "./lib/SonarBug.js",
             dependencies: {
                 "aws-sdk": "0.9.x",
