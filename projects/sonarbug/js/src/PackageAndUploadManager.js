@@ -9,6 +9,7 @@
 //@Require('Class')
 //@Require('Obj')
 //@Require('aws.AwsConfig')
+//@Require('aws.AwsUploader')
 //@Require('aws.S3Api')
 //@Require('aws.S3Bucket')
 //@Require('bugflow.BugFlow')
@@ -35,6 +36,7 @@ var zlib        = require('zlib');
 var Class       = bugpack.require('Class');
 var Obj         = bugpack.require('Obj');
 var AwsConfig   = bugpack.require('aws.AwsConfig');
+var AwsUploader = bugpack.require('aws.AwsUploader');
 var S3Api       = bugpack.require('aws.S3Api');
 var S3Bucket    = bugpack.require('aws.S3Bucket');
 var BugFlow     = bugpack.require('bugflow.BugFlow');
@@ -46,7 +48,7 @@ var Path        = bugpack.require('bugfs.Path');
 // Simplify References
 //-------------------------------------------------------------------------------
 
-var $foreachParallel    = BugFlow.$foreachParallel;
+var $forEachParallel    = BugFlow.$forEachParallel;
 var $if                 = BugFlow.$if;
 var $series             = BugFlow.$series;
 var $task               = BugFlow.$task;
@@ -72,15 +74,9 @@ var PackageAndUploadManager = Class.extend(Obj, {
 
         /**
          * @private
-         * @type {boolean}
+         * @type {AwsUploader}
          */
-        this.isBucketEnsured        = null;
-
-        /**
-         * @private
-         * @type {Object}
-         */
-        this.props                  = null;
+        this.awsUploader            = null;
 
         /**
          * @private
@@ -93,6 +89,8 @@ var PackageAndUploadManager = Class.extend(Obj, {
          * @type {string}
          */
         this.toPackageFoldersPath   = null;
+
+
     },
 
 
@@ -102,17 +100,6 @@ var PackageAndUploadManager = Class.extend(Obj, {
 
     /**
      * @param {{
-     *  props: {
-     *      awsConfig: {
-     *          accessKeyId: string,
-     *          region: string,
-     *          secretAccessKey: string
-     *      },
-     *      sourcePaths: Array.<string>,
-     *      local-bucket: string,
-     *      bucket: string,
-     *      options: {*}
-     *  },
      *  packagedFolderPath: string
      *  toPackageFoldersPath: string,
      * }=} options
@@ -130,11 +117,8 @@ var PackageAndUploadManager = Class.extend(Obj, {
         $series([
             $task(function(flow) {
                 // Defaults
-                _this.isBucketEnsured        = false;
-                _this.props                  = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..') + '/config.json'));
-                _this.packagedFolderPath     = path.resolve(__dirname, '..', 'logs/', 'packaged/');
-                _this.toPackageFoldersPath   = path.resolve(__dirname, '..', 'logs/', 'toPackage/');
-
+                _this.packagedFolderPath    = path.resolve(__dirname, '..', 'logs/', 'packaged/');
+                _this.toPackageFoldersPath  = path.resolve(__dirname, '..', 'logs/', 'toPackage/');
                 // Manual Overrides
                 if (options) {
                     for (var prop in options) {
@@ -144,9 +128,14 @@ var PackageAndUploadManager = Class.extend(Obj, {
 
                 flow.complete();
             }),
-            // Synchronize ensure bucket function
-            $task(function(flow) {
-                _this.s3EnsureBucket(function(error) {
+            $task(function(flow){
+                _this.awsUploader           = new AwsUploader(path.resolve(__dirname, '..') + '/config.json');
+                _this.awsUploader.initialize(function(error){
+                    if(!error){
+                        console.log("awsUploader initialized");
+                    } else {
+                        console.log("awsUploader failed to initialize");
+                    }
                     flow.complete(error);
                 });
             })
@@ -219,20 +208,14 @@ var PackageAndUploadManager = Class.extend(Obj, {
         var callback = callback || function() {};
         $series([
             $task(function(flow) {
-                if(!_this.isBucketEnsured){
-                    _this.s3EnsureBucket(function(error) {
-                        if(!error){
-                            _this.isBucketEnsured = true;
-                            console.log("Bucket Ensured");
-                        }
-                        flow.complete(error);
-                    });
-                }
-            }),
-            $task(function(flow) {
                 fs.readdir(directoryPath, function(error, directories){
-                    if(!error){
-                        $foreachParallel(directories, function(flow, directory) {
+                    if(error){
+                        flow.error(error);
+                    } else if(directories.length === 0){
+                        console.log("There are no directories package and upload in", directoryPath);
+                        flow.complete();
+                    } else if(directories.length > 0){
+                        $forEachParallel(directories, function(flow, directory) {
                             _this.packageAndUpload(directory, function(error, directory) {
                                 BugFs.deleteDirectory(path.resolve(directoryPath, directory), true, false, function(error){
                                     if(!error){
@@ -245,12 +228,10 @@ var PackageAndUploadManager = Class.extend(Obj, {
                             });
                         }).execute(function(error){
                             if(!error){
-                                console.log("Successfully packaged and uploaded each directory in", directoryPath);
+                                console.log("Successfully packaged and uploaded all available directories in", directoryPath);
                             }
                             flow.complete(error);
                         });
-                    } else {
-                        flow.error(error);
                     }
                 });
             })
@@ -262,19 +243,7 @@ var PackageAndUploadManager = Class.extend(Obj, {
      * @param {function(error)} callback
      */
     upload: function(outputFilePath, callback){
-        this.s3PutFile(outputFilePath, function(error){
-            if(!error){
-                var newCallback = function(error){
-                    if(!error){
-                        console.log('File', outputFilePath, 'removed');
-                    }
-                    callback(error);
-                };
-                fs.unlink(outputFilePath, newCallback);
-            } else {
-                callback(error);
-            }
-        });
+        this.awsUploader.upload(outputFilePath, callback);
     },
 
     /**
@@ -282,107 +251,8 @@ var PackageAndUploadManager = Class.extend(Obj, {
      * @param {function(error)} callback
      */
     uploadEach: function(outputDirectoryPath, callback){
-        var _this = this;
-
-        $series([
-            $task(function(flow){
-                if(!_this.isBucketEnsured){
-                    _this.s3EnsureBucket(function(error){
-                        if(!error){
-                            _this.isBucketEnsured = true;
-                            console.log("Bucket Ensured");
-                        }
-                        flow.complete(error);
-                    });
-                }
-            }),
-            $task(function(flow){
-                fs.readdir(outputDirectoryPath, function(error, files){
-                    if(!error){
-                        $foreachParallel(files, function(flow, file){
-                            var outputFilePath = outputDirectoryPath + '/' + file;
-                            _this.upload(outputFilePath, function(error){
-                                flow.complete(error);
-                            });
-                        }).execute(function(error){
-                            if(!error){
-                                console.log("Successfully uploaded each file in", outputDirectoryPath);
-                            }
-                            flow.complete(error);
-                        });
-                    } else {
-                        flow.error(error);
-                    }
-                });
-            })
-        ]).execute(callback);
-    },
-
-
-    //-------------------------------------------------------------------------------
-    // Private Methods
-    //-------------------------------------------------------------------------------
-
-    /**
-     * @private
-     * @param {function(Error)} callback
-     */
-    s3EnsureBucket: function(callback) {
-       var props = this.props;
-       var awsConfig = new AwsConfig(props.awsConfig);
-       var s3Bucket = new S3Bucket({
-           name: props.bucket || props["local-bucket"]
-       });
-       var s3Api = new S3Api(awsConfig);
-       s3Api.ensureBucket(s3Bucket, function(error) {
-           var bucketName = s3Bucket.getName();
-           if (!error) {
-               console.log("Ensured bucket '" + bucketName + "' exists");
-               callback(null, bucketName);
-           } else {
-               callback(error, bucketName);
-           }
-       });
-    },
-
-    /**
-     * @private
-     * @param {string} file
-     * @param {function(Error)} callback
-     */
-    s3PutFile: function(file, callback) {
-        var props = this.props;
-        var awsConfig = new AwsConfig(props.awsConfig);
-        var filePath = new Path(file);
-        var s3Bucket = new S3Bucket({
-            name: props.bucket || props["local-bucket"]
-        });
-        var options = props.options || {acl: ''}; // Test this change
-        var s3Api = new S3Api(awsConfig);
-
-        $if (function(flow) {
-               filePath.exists(function(exists) {
-                   flow.assert(exists);
-               });
-           },
-           $task(function(flow) {
-               s3Api.putFile(filePath, s3Bucket, options, function(error, s3Object) {
-                   if (!error) {
-                       console.log("Successfully uploaded file to S3 '" + s3Api.getObjectURL(s3Object, s3Bucket) + "'");
-                       // _this.registerURL(filePath, s3Api.getObjectURL(s3Object, s3Bucket));
-                       flow.complete();
-                   } else {
-                       console.log("s3Api.putFile Error");
-                       flow.error(error);
-                   }
-               });
-           })
-       ).$else(
-           $task(function(flow) {
-               flow.error(new Error("Cannot find file '" + filePath.getAbsolutePath() + "'"));
-           })
-       ).execute(callback);
-   }
+        this.awsUploader.uploadEach(outputDirectoryPath, callback);
+    }
 });
 
 

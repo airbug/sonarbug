@@ -54,7 +54,7 @@ var SonarBugClient = Class.extend(Obj, {
          * @private
          * @type {string}
          */
-        this.version = "0.0.4";
+        this.version = "0.0.5";
 
         /**
          * @private
@@ -132,7 +132,29 @@ var SonarBugClient = Class.extend(Obj, {
      *
      */
     startTracking: function() {
-        this.track('connect', null);
+        var data = {
+            "document": {},
+            "navigator": {}
+        };
+        var document    = window.document;
+        var navigator   = window.navigator;
+
+        data.document.referrer          = document.referrer;
+        data.navigator.appCodeName      = navigator.appCodeName;
+        data.navigator.appName          = navigator.appName;
+        data.navigator.appVersion       = navigator.appVersion;
+        data.navigator.buildID          = navigator.buildID;
+        data.navigator.cookieEnabled    = navigator.cookieEnabled;
+        data.navigator.doNotTrack       = navigator.doNotTrack;
+        data.navigator.language         = navigator.language;
+        data.navigator.oscpu            = navigator.oscpu;
+        data.navigator.platform         = navigator.platform;
+        data.navigator.product          = navigator.product;
+        data.navigator.productSub       = navigator.productSub;
+        data.navigator.vendor           = navigator.vendor;
+        data.navigator.vendorSub        = navigator.vendorSub;
+
+        this.track('connect', data);
     },
 
     /**
