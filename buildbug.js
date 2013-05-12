@@ -37,7 +37,7 @@ buildProperties({
     sonarbug: {
         packageJson: {
             name: "sonarbug",
-            version: "0.0.4",
+            version: "0.0.6",
             main: "./lib/SonarBug.js",
             dependencies: {
                 "aws-sdk": "0.9.x",
@@ -68,13 +68,14 @@ buildProperties({
             "../bugunit/projects/bugunit/js/scripts"
         ],
         testPaths: [
-            "../bugjs/projects/bugjs/js/test"
+            "../bugjs/projects/bugjs/js/test",
+            "./projects/sonarbug/js/test"
         ]
     },
     sonarbugclient: {
         packageJson: {
             name: "sonarbugclient",
-            version: "0.0.4", //NOTE: This also needs to be updated in the SonarBugClient.js file to ensure proper versioning of log messages
+            version: "0.0.5", //NOTE: This also needs to be updated in the SonarBugClient.js file to ensure proper versioning of log messages
             main: "./lib/SonarBugClient.js",
             dependencies: {
                 bugpack: "https://s3.amazonaws.com/airbug/bugpack-0.0.5.tgz"

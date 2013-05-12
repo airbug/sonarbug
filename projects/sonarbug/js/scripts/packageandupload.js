@@ -31,6 +31,7 @@ packageAndUploadManager.initialize(function(error){
     if (!error) {
         console.log('packageAndUploadManager initialized');
         packageAndUploadManager.packageAndUploadEach(function(error) {
+            packageAndUploadManager = null;
             if (!error) {
                 console.log('Package and Upload Task Completed');
             } else {
