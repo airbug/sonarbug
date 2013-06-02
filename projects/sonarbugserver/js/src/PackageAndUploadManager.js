@@ -2,7 +2,7 @@
 // Annotations
 //-------------------------------------------------------------------------------
 
-//@Package('sonarbug')
+//@Package('sonarbugserver')
 
 //@Export('PackageAndUploadManager')
 
@@ -153,12 +153,8 @@ var PackageAndUploadManager = Class.extend(Obj, {
       * @param {string=} directoryName
       * @param {function(error, string)} callback
       */
-    package: function(directoryName, callback){         
-        if (directoryName === 'function' && callback == null) {
-            var callback = directoryName;
-            var directoryName = "";
-        }
-        var _this = this;
+    package: function(directoryName, callback){
+
         var directoryPath = this.toPackageFoldersPath + '/' + directoryName;
         var inp = fstream.Reader({path: directoryPath, type: "Directory"});
         var outputFilePath = this.packagedFolderPath + '/' + directoryName + '.tgz';
@@ -260,4 +256,4 @@ var PackageAndUploadManager = Class.extend(Obj, {
 // Exports
 // -------------------------------------------------------------------------------
 
-bugpack.export('sonarbug.PackageAndUploadManager', PackageAndUploadManager);
+bugpack.export('sonarbugserver.PackageAndUploadManager', PackageAndUploadManager);

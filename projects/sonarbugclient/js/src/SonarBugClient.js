@@ -4,12 +4,14 @@
 
 //@Package('sonarbugclient')
 
-//@Export('SonarBugClient')
+//@Export('SonarbugClient')
 
 //@Require('Class')
 //@Require('Obj')
 //@Require('Proxy')
 //@Require('Queue')
+//@Require('cookies.Cookies')
+//@Require('session.SessionManager')
 //@Require('socket-io.SocketIo')
 
 
@@ -24,24 +26,26 @@ var bugpack = require('bugpack').context();
 // BugPack
 //-------------------------------------------------------------------------------
 
-var Class =     bugpack.require('Class');
-var Obj =       bugpack.require('Obj');
-var Proxy =     bugpack.require('Proxy');
-var Queue =     bugpack.require('Queue');
-var SocketIo =  bugpack.require('socket-io.SocketIo');
+var Class           = bugpack.require('Class');
+var Obj             = bugpack.require('Obj');
+var Proxy           = bugpack.require('Proxy');
+var Queue           = bugpack.require('Queue');
+var Cookies         = bugpack.require('cookies.Cookies');
+var SessionManager  = bugpack.require('session.SessionManager');
+var SocketIo        = bugpack.require('socket-io.SocketIo');
 
 
 //-------------------------------------------------------------------------------
 // Declare Class
 //-------------------------------------------------------------------------------
 
-var SonarBugClient = Class.extend(Obj, {
+var SonarbugClient = Class.extend(Obj, {
 
     //-------------------------------------------------------------------------------
     // Constructor
     //-------------------------------------------------------------------------------
 
-    _constructor: function() {
+    _constructor: function(sessionManager) {
 
         this._super();
 
@@ -49,12 +53,6 @@ var SonarBugClient = Class.extend(Obj, {
         //-------------------------------------------------------------------------------
         // Declare Variables
         //-------------------------------------------------------------------------------
-
-        /**
-         * @private
-         * @type {string}
-         */
-        this.version = "0.0.5";
 
         /**
          * @private
@@ -67,6 +65,12 @@ var SonarBugClient = Class.extend(Obj, {
          * @type {boolean}
          */
         this.configureCallbackFired = false;
+
+        /**
+         * @private
+         * @type {boolean}
+         */
+        this.configured = false;
 
         /**
          * @private
@@ -106,9 +110,21 @@ var SonarBugClient = Class.extend(Obj, {
 
         /**
          * @private
+         * @type {SessionManager}
+         */
+        this.sessionManager = sessionManager;
+
+        /**
+         * @private
          * @type {*}
          */
         this.socket = null;
+
+        /**
+         * @private
+         * @type {string}
+         */
+        this.version = "0.0.5";
     },
 
     //-------------------------------------------------------------------------------
@@ -122,39 +138,52 @@ var SonarBugClient = Class.extend(Obj, {
      * @param {function} callback
      */
     configure: function(params, callback) {
-        this.hostname = params.hostname || params;
-        this.configureCallback = callback;
-        this.configureCallbackFired = false;
-        this.connect();
+        if (!this.configured) {
+            this.configured = true;
+            this.hostname = params.hostname || params;
+            this.configureCallback = callback;
+            this.configureCallbackFired = false;
+            this.sessionManager.establishSession();
+            this.connect();
+        } else {
+            throw new Error("SonarbugClient has alredy been configured.");
+        }
     },
 
     /**
      *
      */
     startTracking: function() {
-        var data = {
-            "document": {},
-            "navigator": {}
-        };
-        var document    = window.document;
-        var navigator   = window.navigator;
+        if (this.configured) {
+            var data = {
+                "document": {},
+                "navigator": {}
+            };
+            var document    = window.document;
+            var navigator   = window.navigator;
 
-        data.document.referrer          = document.referrer;
-        data.navigator.appCodeName      = navigator.appCodeName;
-        data.navigator.appName          = navigator.appName;
-        data.navigator.appVersion       = navigator.appVersion;
-        data.navigator.buildID          = navigator.buildID;
-        data.navigator.cookieEnabled    = navigator.cookieEnabled;
-        data.navigator.doNotTrack       = navigator.doNotTrack;
-        data.navigator.language         = navigator.language;
-        data.navigator.oscpu            = navigator.oscpu;
-        data.navigator.platform         = navigator.platform;
-        data.navigator.product          = navigator.product;
-        data.navigator.productSub       = navigator.productSub;
-        data.navigator.vendor           = navigator.vendor;
-        data.navigator.vendorSub        = navigator.vendorSub;
+            data.document.referrer          = document.referrer;
+            data.navigator.appCodeName      = navigator.appCodeName;
+            data.navigator.appName          = navigator.appName;
+            data.navigator.appVersion       = navigator.appVersion;
+            data.navigator.buildID          = navigator.buildID;
+            data.navigator.cookieEnabled    = navigator.cookieEnabled;
+            data.navigator.doNotTrack       = navigator.doNotTrack;
+            data.navigator.language         = navigator.language;
+            data.navigator.oscpu            = navigator.oscpu;
+            data.navigator.platform         = navigator.platform;
+            data.navigator.product          = navigator.product;
+            data.navigator.productSub       = navigator.productSub;
+            data.navigator.vendor           = navigator.vendor;
+            data.navigator.vendorSub        = navigator.vendorSub;
 
-        this.track('connect', data);
+            var session = this.sessionManager.getCurrentSession();
+
+            data.sessionUuid = session.getSessionUuid();
+            this.track('connect', data);
+        } else {
+            throw new Error("Must configure SonarbugClient before calling startTracking()");
+        }
     },
 
     /**
@@ -162,12 +191,16 @@ var SonarBugClient = Class.extend(Obj, {
      * @param {*} data
      */
     track: function(eventName, data) {
-        this.queueTrackingEvent(eventName, data);
+        if (this.configured) {
+            this.queueTrackingEvent(eventName, data);
 
-        if(this.isConnected){
-            this.processTrackingQueue();
+            if(this.isConnected){
+                this.processTrackingQueue();
+            } else {
+                this.connect();
+            }
         } else {
-            this.connect();
+            throw new Error("Must configure SonarbugClient before calling track()");
         }
     },
 
@@ -196,7 +229,7 @@ var SonarBugClient = Class.extend(Obj, {
         var _this = this;
         if (!this.isConnected && !this.isConnecting) {
             this.isConnecting = true;
-            console.log('SonarBugClient is attempting to connect...');
+            console.log('SonarbugClient is attempting to connect...');
             var options = {
             //     port: 80
             //   , secure: false
@@ -219,42 +252,42 @@ var SonarBugClient = Class.extend(Obj, {
             socket.on('connect', function() {
                 _this.isConnected = true;
                 _this.isConnecting = false;
-                console.log('SonarBugClient is connected');
+                console.log('SonarbugClient is connected');
                 _this.processTrackingQueue();
                 _this.completeConfiguration();
             })
             .on('connect_error', function(error) {
                 _this.isConnecting = false;
-                console.log('SonarBugClient connect_error:', error);
+                console.log('SonarbugClient connect_error:', error);
             })
             .on('connection_timeout', function() {
                 _this.isConnecting = false;
-                console.log('SonarBugClient connection_timeout');
+                console.log('SonarbugClient connection_timeout');
             })
             .on('connect_failed', function() {
                 _this.isConnecting = false;
-                console.log('SonarBugClient connection_failed');
+                console.log('SonarbugClient connection_failed');
             })
             .on('reconnect', function(websocket) {
                 _this.isConnected = true;
                 _this.processTrackingQueue();
-                console.log('SonarBugClient reconnected');
+                console.log('SonarbugClient reconnected');
             })
             .on('reconnect_error', function(error) {
-                console.log('SonarBugClient reconnect_error:', error);
+                console.log('SonarbugClient reconnect_error:', error);
             })
             .on('reconnect_failed', function() {
-                console.log('SonarBugClient reconnect_failed');
+                console.log('SonarbugClient reconnect_failed');
             })
             .on('error', function(error) {
                 _this.isConnecting = false;
-                console.log('SonarBugClient error:', error);
+                console.log('SonarbugClient error:', error);
                 _this.retryConnect();
             })
             .on('disconnect', function() {
                 _this.isConnecting = false;
                 _this.isConnected = false;
-                console.log('SonarBugClient disconnected');
+                console.log('SonarbugClient disconnected');
             });
         }
     },
@@ -286,7 +319,7 @@ var SonarBugClient = Class.extend(Obj, {
      * @private
      */
     retryConnect: function() {
-        if (this.retryAttempts < SonarBugClient.retryLimit) {
+        if (this.retryAttempts < SonarbugClient.retryLimit) {
             this.retryAttempts++;
             this.connect();
         } else {
@@ -311,9 +344,20 @@ var SonarBugClient = Class.extend(Obj, {
             "location": location,
             "data": data
         });
-        console.log('SonarBugClient tracklog:', "eventName:", eventName, ", timestamp:", timestamp, ", version:", version, ", location:", location, ", data:", data);
+        console.log('SonarbugClient tracklog:', "eventName:", eventName, ", timestamp:", timestamp, ", version:", version, ", location:", location, ", data:", data);
     }
 });
+
+
+//-------------------------------------------------------------------------------
+// Static Class Variables
+//-------------------------------------------------------------------------------
+
+/**
+ * @static
+ * @type {SonarbugClient}
+ */
+SonarbugClient.instance = null;
 
 
 //-------------------------------------------------------------------------------
@@ -321,22 +365,18 @@ var SonarBugClient = Class.extend(Obj, {
 //-------------------------------------------------------------------------------
 
 /**
- * @static
- * @type {SonarBugClient}
+ * @return {SonarbugClient}
  */
-SonarBugClient.instance = null;
-
-/**
- * @return {SonarBugClient}
- */
-SonarBugClient.getInstance = function() {
-    if (!SonarBugClient.instance) {
-        SonarBugClient.instance = new SonarBugClient();
+SonarbugClient.getInstance = function() {
+    if (!SonarbugClient.instance) {
+        var cookies = new Cookies();
+        var sessionManager = new SessionManager(cookies);
+        SonarbugClient.instance = new SonarbugClient(sessionManager);
     }
-    return SonarBugClient.instance;
+    return SonarbugClient.instance;
 };
 
-Proxy.proxy(SonarBugClient, SonarBugClient.getInstance, [
+Proxy.proxy(SonarbugClient, SonarbugClient.getInstance, [
     "configure",
     "startTracking",
     "track"
@@ -347,4 +387,4 @@ Proxy.proxy(SonarBugClient, SonarBugClient.getInstance, [
 // BugPack
 //-------------------------------------------------------------------------------
 
-bugpack.export('sonarbugclient.SonarBugClient', SonarBugClient);
+bugpack.export('sonarbugclient.SonarbugClient', SonarbugClient);

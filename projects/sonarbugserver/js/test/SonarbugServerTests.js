@@ -8,7 +8,7 @@
 //@Require('Obj')
 //@Require('annotate.Annotate')
 //@Require('bugunit-annotate.TestAnnotation')
-//@Require('sonarbug.LogsManager')
+//@Require('sonarbugserver.SonarbugServer')
 
 
 //-------------------------------------------------------------------------------
@@ -26,7 +26,7 @@ var Class               = bugpack.require('Class');
 var Obj                 = bugpack.require('Obj');
 var Annotate            = bugpack.require('annotate.Annotate');
 var TestAnnotation      = bugpack.require('bugunit-annotate.TestAnnotation');
-var LogsManager         = bugpack.require('sonarbug.LogsManager');
+var SonarbugServer         = bugpack.require('sonarbugserver.SonarbugServer');
 
 
 //-------------------------------------------------------------------------------
@@ -41,41 +41,26 @@ var test = TestAnnotation.test;
 // Declare Tests
 //-------------------------------------------------------------------------------
 
-var updateLogEventManagersTest = {
+var sonarbugServerStartTest = {
+
+    async: true,
 
     // Setup Test
     //-------------------------------------------------------------------------------
 
     setup: function() {
         var _this = this;
-        this.callCount = 0;
-        this.logsManager = new LogsManager();
-        this.logsManager.moveCompletedFolderToToPackageFolderAndRemoveLogEventManager = function(folderName, callback){
+        this.callOrder = [];
+        this.sonarbugServer = new SonarbugServer();
+        //TODO BRN: Need to come up with a spy/stub/mock library to make this easier.
+        this.sonarbugServer.configure = function(callback) {
+            _this.callOrder.push("configure");
             callback();
         };
-        this.logsManager.logEventManagers = {
-            "completed-1": {
-                getMoveCount: function(){
-                    _this.callCount++;
-                    return this.moveCount
-                },
-                moveCount: 0,
-                onceOn: function(eventName, callback){
-                    callback();
-                }
-            },
-            "completed-2": {
-                getMoveCount: function(){
-                    _this.callCount++;
-                    return this.moveCount
-                },
-                moveCount: 3,
-                onceOn: function(eventName, callback){
-                    callback();
-                }
-            }
+        this.sonarbugServer.initialize = function(callback) {
+            _this.callOrder.push("initialize");
+            callback();
         };
-        this.logsManager.packagedFolderPath = "packaged";
     },
 
 
@@ -83,12 +68,16 @@ var updateLogEventManagersTest = {
     //-------------------------------------------------------------------------------
 
     test: function(test) {
-        console.log(this);
-        this.logsManager.updateLogEventManagers(function(){});
-        test.assertEqual(this.callCount, 2,
-            "Assert that all of the logEventManagers have been called once.");
+        var _this = this;
+        this.sonarbugServer.start(function() {
+            test.assertEqual(_this.callOrder[0], "configure",
+                "Assert that configure was called first.");
+            test.assertEqual(_this.callOrder[1], "initialize",
+                "Assert that initialize was called second.");
+            test.complete();
+        });
     }
 };
-annotate(updateLogEventManagersTest).with(
-    test().name("LogsManager #updateLogEventManagers Test")
+annotate(sonarbugServerStartTest).with(
+    test().name("SonarbugServer - start() Test")
 );

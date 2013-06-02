@@ -2,7 +2,7 @@
 // Annotations
 //-------------------------------------------------------------------------------
 
-//@Require('sonarbug.PackageAndUploadManager')
+//@Require('sonarbugserver.PackageAndUploadManager')
 
 
 //-------------------------------------------------------------------------------
@@ -16,7 +16,7 @@ var bugpack = require('bugpack').context(module);
 // BugPack
 //-------------------------------------------------------------------------------
 
-var PackageAndUploadManager = bugpack.require('sonarbug.PackageAndUploadManager');
+var PackageAndUploadManager = bugpack.require('sonarbugserver.PackageAndUploadManager');
 
 
 //-------------------------------------------------------------------------------

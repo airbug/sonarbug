@@ -2,7 +2,7 @@
 // Requires
 //-------------------------------------------------------------------------------
 
-//@Require('sonarbug.SonarBug')
+//@Require('sonarbugserver.sonarbugServerApplication')
 
 
 //-------------------------------------------------------------------------------
@@ -16,12 +16,21 @@ var bugpack = require('bugpack').context(module);
 // BugPack
 //-------------------------------------------------------------------------------
 
-var SonarBug = bugpack.require('sonarbug.SonarBug');
+var SonarbugServerApplication = bugpack.require('sonarbugserver.SonarbugServerApplication');
 
 
 //-------------------------------------------------------------------------------
 // Bootstrap
 //-------------------------------------------------------------------------------
 
-var sonarBug = new SonarBug();
-sonarBug.start();
+var sonarbugServerApplication = new SonarbugServerApplication();
+sonarbugServerApplication.start(function(error){
+    console.log("Starting sonarbug server...");
+    if (!error){
+        console.log("Sonarbug successfully started");
+    } else {
+        console.error(error);
+        console.error(error.stack);
+        process.exit(1);
+    }
+});

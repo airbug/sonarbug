@@ -1,108 +1,69 @@
 //-------------------------------------------------------------------------------
-// Requires
+// Annotations
 //-------------------------------------------------------------------------------
 
-//@Package('sonarbug')
+//@Package('sonarbugserver')
 
-//@Export('LogEventManager')
+//@Export('SonarbugServerApplication')
+//@Autoload
 
 //@Require('Class')
-//@Require('Event')
-//@Require('EventDispatcher')
+//@Require('Obj')
+//@Require('bugioc.ConfigurationScan')
 
 
 //-------------------------------------------------------------------------------
 // Common Modules
 //-------------------------------------------------------------------------------
 
-var bugpack         = require('bugpack').context();
+var bugpack = require('bugpack').context();
 
 
 //-------------------------------------------------------------------------------
-// BugPack Modules
+// BugPack
 //-------------------------------------------------------------------------------
 
-var Class           = bugpack.require('Class');
-var Event           = bugpack.require('Event');
-var EventDispatcher = bugpack.require('EventDispatcher');
+var Class =             bugpack.require('Class');
+var Obj =               bugpack.require('Obj');
+var ConfigurationScan = bugpack.require('bugioc.ConfigurationScan');
 
 
 //-------------------------------------------------------------------------------
 // Declare Class
 //-------------------------------------------------------------------------------
 
-var LogEventManager = Class.extend(EventDispatcher, {
+var SonarbugServerApplication = Class.extend(Obj, {
 
     //-------------------------------------------------------------------------------
     // Constructor
     //-------------------------------------------------------------------------------
 
-    /**
-     * @param {string} name
-     */
-    _constructor: function(name){
+    _constructor: function() {
 
         this._super();
 
 
         //-------------------------------------------------------------------------------
-        // Variables
+        // Declare Variables
         //-------------------------------------------------------------------------------
 
         /**
          * @private
-         * @type {number}
+         * @type {ConfigurationScan}
          */
-        this.moveCount = 0;
-
-        /**
-         * @private
-         * @type {string}
-         */
-        this.name = name;
-
+        this.configurationScan = new ConfigurationScan();
     },
 
 
     //-------------------------------------------------------------------------------
-    // Getters and Setters
+    // Class Methods
     //-------------------------------------------------------------------------------
 
     /**
-     *
+     * @param {function(Error)} callback
      */
-    incrementMoveCount: function(){
-        this.moveCount++;
-    },
-
-    /**
-     *
-     */
-    decrementMoveCount: function(){
-        this.moveCount -= 1;
-        if (this.moveCount === 0) {
-            this.dispatchReadyToPackageEvent();
-        }
-    },
-
-    /**
-     * @return {number}
-     */
-    getMoveCount: function(){
-        return this.moveCount;
-    },
-
-
-    //-------------------------------------------------------------------------------
-    // Private Methods
-    //-------------------------------------------------------------------------------
-
-    /**
-     * @private
-     */
-    dispatchReadyToPackageEvent: function(){
-        this.dispatchEvent(new Event("ready-to-package"));
-        console.log("EventLogManager-" + this.name, "dispatched event: 'ready-to-package'");
+    start: function(callback) {
+        this.configurationScan.scan(callback);
     }
 });
 
@@ -111,4 +72,4 @@ var LogEventManager = Class.extend(EventDispatcher, {
 // Exports
 //-------------------------------------------------------------------------------
 
-bugpack.export('sonarbug.LogEventManager', LogEventManager);
+bugpack.export("sonarbugserver.SonarbugServerApplication", SonarbugServerApplication);

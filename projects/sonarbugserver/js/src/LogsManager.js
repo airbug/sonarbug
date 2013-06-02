@@ -2,15 +2,17 @@
 // Annotations
 //-------------------------------------------------------------------------------
 
-//@Package('sonarbug')
+//@Package('sonarbugserver')
 
 //@Export('LogsManager')
 
 //@Require('Class')
+//@Require('Map')
 //@Require('Obj')
 //@Require('bugflow.BugFlow')
-//@Require('sonarbug.LogEventManager')
-//@Require('sonarbug.PackageAndUploadManager')
+//@Require('bugfs.BugFs')
+//@Require('sonarbugserver.LogEventManager')
+//@Require('sonarbugserver.PackageAndUploadManager')
 
 
 //-------------------------------------------------------------------------------
@@ -26,12 +28,13 @@ var path            = require('path');
 // BugPack Modules
 //-------------------------------------------------------------------------------
 
+var Class                   = bugpack.require('Class');
+var Map                     = bugpack.require('Map');
+var Obj                     = bugpack.require('Obj');
 var BugFlow                 = bugpack.require('bugflow.BugFlow');
 var BugFs                   = bugpack.require('bugfs.BugFs');
-var Class                   = bugpack.require('Class');
-var LogEventManager         = bugpack.require('sonarbug.LogEventManager');
-var Obj                     = bugpack.require('Obj');
-var PackageAndUploadManager = bugpack.require('sonarbug.PackageAndUploadManager');
+var LogEventManager         = bugpack.require('sonarbugserver.LogEventManager');
+var PackageAndUploadManager = bugpack.require('sonarbugserver.PackageAndUploadManager');
 
 
 //-------------------------------------------------------------------------------
@@ -60,6 +63,7 @@ var LogsManager = Class.extend(Obj, {
         //-------------------------------------------------------------------------------
 
         /**
+         * @private
          * @type {{
          *  {
          *    "currentCompletedId":1,
@@ -77,52 +81,62 @@ var LogsManager = Class.extend(Obj, {
         this.config                     = null;
 
         /**
+         * @private
          * @type {string}
          */
         this.configFilePath             = null;
 
         /**
-         * @type {{}}
+         * @private
+         * @type {Map.<string, LogEventManager>}
          */
-        this.logEventManagers           = null;
+        this.logEventManagers           = new Map();
 
         /**
+         * @private
          * @type {string}
          */
         this.activeFoldersPath          = null;
 
         /**
+         * @private
          * @type {string}
          */
         this.completedFoldersPath       = null;
 
         /**
+         * @private
          * @type {string}
          */
         this.logsPath                   = null;
 
         /**
+         * @private
          * @type {string}
          */
         this.packagedFolderPath         = null;
 
         /**
+         * @private
          * @type {string}
          */
         this.toPackageFoldersPath       = null;
 
         /**
-         * @type {string}
+         * @private
+         * @type {?string}
          */
         this.currentCompletedFolderName = null;
 
         /**
-         * @type {number}
+         * @private
+         * @type {?number}
          */
         this.currentCompletedFolderId   = null;
 
         /**
-         * @type {string}
+         * @private
+         * @type {?string}
          */
         this.currentCompletedFolderPath = null;
     },
@@ -143,7 +157,6 @@ var LogsManager = Class.extend(Obj, {
 
         var config                      = this.config                   = config;
         var configFilePath              = this.configFilePath           = configFilePath;
-        var logEventManagers            = this.logEventManagers         = {};
         var activeFoldersPath           = this.activeFoldersPath        = path.resolve(__dirname, '..', 'logs/', 'active/');
         var completedFoldersPath        = this.completedFoldersPath     = path.resolve(__dirname, '..', 'logs/', 'completed/');
         var logsPath                    = this.logsPath                 = path.resolve(__dirname, '..', 'logs/');
@@ -157,9 +170,7 @@ var LogsManager = Class.extend(Obj, {
                 // Initialize currentCompletedFolder variables
                 //-------------------------------------------------------------------------------
                 $task(function(flow){
-                    _this.currentCompletedFolderId   = config.currentCompletedId;
-                    _this.currentCompletedFolderName = 'completed-' + _this.currentCompletedFolderId;
-                    _this.currentCompletedFolderPath = completedFoldersPath + '/' + _this.currentCompletedFolderName;
+                    _this.currentCompletedLogsFolder = _this.generateCompletedLogsFolder();
                     flow.complete();
                 }),
 
@@ -230,7 +241,7 @@ var LogsManager = Class.extend(Obj, {
      * @param {string} completedUserFolderPath
      * @param {function(error)} callback
      */
-    moveLogFileToCompletedUserFolder: function(logFilePath, currentCompletedFolderName, completedUserFolderPath, callback){
+    moveLogFileToCompletedUserFolder: function(logFilePath, currentCompletedFolderName, completedUserFolderPath, callback) {
         var logEventManager = this.logEventManagers[currentCompletedFolderName];
 
         BugFs.move(logFilePath, completedUserFolderPath, function(error){
@@ -329,6 +340,12 @@ var LogsManager = Class.extend(Obj, {
         fs.mkdir(newCompletedFolderPath, 0777, callback);
     },
 
+    generateCompletedLogsFolder: function() {
+        _this.currentCompletedFolderId   = config.currentCompletedId;
+        _this.currentCompletedFolderName = 'completed-' + _this.currentCompletedFolderId;
+        _this.currentCompletedFolderPath = completedFoldersPath + '/' + _this.currentCompletedFolderName;
+    },
+
     /**
      * @private
      * @param {string} completedFolderName
@@ -370,6 +387,10 @@ var LogsManager = Class.extend(Obj, {
         var oldCompletedFolderLogEventManager   = _this.logEventManagers[oldCompletedFolderName];
         var newCompletedFolderLogEventManager;
 
+        //TODO BRN: This rotation has an error in it. By updating the log event managers first, we move the completed
+        // folders, but don't stop opening new files against them during the async breaks between the tasks in the series.
+        // Instead, we need to create the new completed folder first and set it as the current completed folder.
+        // After we've done that, we can then safely begin moving the other log folders.
         $series([
             $task(function(flow){
                 _this.updateLogEventManagers(function(error){
@@ -452,11 +473,8 @@ var LogsManager = Class.extend(Obj, {
      * @param {function(error)} callback
      */
     updateLogEventManagers: function(callback){
-        var _this                   = this;
-        var logEventManagers        = this.logEventManagers;
-        var completedFoldersPath    = this.completedFoldersPath;
-
-        $forInParallel(logEventManagers, function(flow, folderName, logEventManager){
+        var _this = this;
+        $forInParallel(this.logEventManagers, function(flow, folderName, logEventManager){
             if(logEventManager.getMoveCount() === 0){
                 var folderPath = path.resolve(_this.completedFoldersPath + '/' + folderName);
                 _this.moveCompletedFolderToToPackageFolderAndRemoveLogEventManager(folderName, function(error){
@@ -496,8 +514,9 @@ var LogsManager = Class.extend(Obj, {
     }
 });
 
+
 //-------------------------------------------------------------------------------
 // Exports
 //-------------------------------------------------------------------------------
 
-bugpack.export('sonarbug.LogsManager', LogsManager);
+bugpack.export('sonarbugserver.LogsManager', LogsManager);

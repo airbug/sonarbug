@@ -8,7 +8,7 @@
 //@Require('Obj')
 //@Require('annotate.Annotate')
 //@Require('bugunit-annotate.TestAnnotation')
-//@Require('sonarbug.LogEventManager')
+//@Require('sonarbugserver.LogEventManager')
 
 
 //-------------------------------------------------------------------------------
@@ -26,7 +26,7 @@ var Class               = bugpack.require('Class');
 var Obj                 = bugpack.require('Obj');
 var Annotate            = bugpack.require('annotate.Annotate');
 var TestAnnotation      = bugpack.require('bugunit-annotate.TestAnnotation');
-var LogEventManager     = bugpack.require('sonarbug.LogEventManager');
+var LogEventManager     = bugpack.require('sonarbugserver.LogEventManager');
 
 
 //-------------------------------------------------------------------------------
