@@ -376,7 +376,7 @@ SonarbugClient.getInstance = function() {
     return SonarbugClient.instance;
 };
 
-Proxy.proxy(SonarbugClient, SonarbugClient.getInstance, [
+Proxy.proxy(SonarbugClient, Proxy.method(SonarbugClient.getInstance), [
     "configure",
     "startTracking",
     "track"
