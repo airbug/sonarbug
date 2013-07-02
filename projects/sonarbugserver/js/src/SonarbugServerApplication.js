@@ -9,6 +9,7 @@
 
 //@Require('Class')
 //@Require('Obj')
+//@Require('bugioc.ApplicationContext')
 //@Require('bugioc.ConfigurationScan')
 
 
@@ -23,9 +24,10 @@ var bugpack = require('bugpack').context();
 // BugPack
 //-------------------------------------------------------------------------------
 
-var Class =             bugpack.require('Class');
-var Obj =               bugpack.require('Obj');
-var ConfigurationScan = bugpack.require('bugioc.ConfigurationScan');
+var Class               = bugpack.require('Class');
+var Obj                 = bugpack.require('Obj');
+var ApplicationContext  = bugpack.require('bugioc.ApplicationContext');
+var ConfigurationScan   = bugpack.require('bugioc.ConfigurationScan');
 
 
 //-------------------------------------------------------------------------------
@@ -49,9 +51,15 @@ var SonarbugServerApplication = Class.extend(Obj, {
 
         /**
          * @private
+         * @type {ApplicationContext}
+         */
+        this.applicationContext = new ApplicationContext();
+
+        /**
+         * @private
          * @type {ConfigurationScan}
          */
-        this.configurationScan = new ConfigurationScan();
+        this.configurationScan = new ConfigurationScan(this.applicationContext);
     },
 
 
@@ -63,7 +71,9 @@ var SonarbugServerApplication = Class.extend(Obj, {
      * @param {function(Error)} callback
      */
     start: function(callback) {
-        this.configurationScan.scan(callback);
+        this.configurationScan.scan();
+        this.applicationContext.process();
+        this.applicationContext.initialize(callback);
     }
 });
 
