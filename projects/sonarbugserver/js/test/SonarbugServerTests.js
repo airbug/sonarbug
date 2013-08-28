@@ -6,7 +6,7 @@
 
 //@Require('Class')
 //@Require('Obj')
-//@Require('annotate.Annotate')
+//@Require('bugmeta.BugMeta')
 //@Require('bugunit-annotate.TestAnnotation')
 //@Require('sonarbugserver.SonarbugServer')
 
@@ -24,17 +24,17 @@ var bugpack = require('bugpack').context();
 
 var Class               = bugpack.require('Class');
 var Obj                 = bugpack.require('Obj');
-var Annotate            = bugpack.require('annotate.Annotate');
+var BugMeta             = bugpack.require('bugmeta.BugMeta');
 var TestAnnotation      = bugpack.require('bugunit-annotate.TestAnnotation');
-var SonarbugServer         = bugpack.require('sonarbugserver.SonarbugServer');
+var SonarbugServer      = bugpack.require('sonarbugserver.SonarbugServer');
 
 
 //-------------------------------------------------------------------------------
 // Simplify References
 //-------------------------------------------------------------------------------
 
-var annotate = Annotate.annotate;
-var test = TestAnnotation.test;
+var bugmeta             = BugMeta.context();
+var test                = TestAnnotation.test;
 
 
 //-------------------------------------------------------------------------------
@@ -78,6 +78,6 @@ var sonarbugServerStartTest = {
         });
     }
 };
-annotate(sonarbugServerStartTest).with(
+bugmeta.annotate(sonarbugServerStartTest).with(
     test().name("SonarbugServer - start() Test")
 );

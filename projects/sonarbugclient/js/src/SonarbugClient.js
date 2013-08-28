@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------
-// Requires
+// Annotations
 //-------------------------------------------------------------------------------
 
 //@Package('sonarbugclient')
@@ -369,7 +369,7 @@ SonarbugClient.instance = null;
  */
 SonarbugClient.getInstance = function() {
     if (!SonarbugClient.instance) {
-        var cookies = new Cookies();
+        var cookies = new Cookies(document);
         var sessionManager = new SessionManager(cookies);
         SonarbugClient.instance = new SonarbugClient(sessionManager);
     }

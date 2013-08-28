@@ -9,12 +9,12 @@
 
 //@Require('Class')
 //@Require('Obj')
-//@Require('annotate.Annotate')
 //@Require('bugioc.ArgAnnotation')
 //@Require('bugioc.ConfigurationAnnotation')
 //@Require('bugioc.IConfiguration')
 //@Require('bugioc.ModuleAnnotation')
 //@Require('bugioc.PropertyAnnotation')
+//@Require('bugmeta.BugMeta')
 //@Require('express.ExpressApp')
 //@Require('express.ExpressServer')
 //@Require('sonarbugserver.LogsManager')
@@ -34,12 +34,12 @@ var bugpack = require('bugpack').context();
 
 var Class                   = bugpack.require('Class');
 var Obj                     = bugpack.require('Obj');
-var Annotate                = bugpack.require('annotate.Annotate');
 var ArgAnnotation           = bugpack.require('bugioc.ArgAnnotation');
 var ConfigurationAnnotation = bugpack.require('bugioc.ConfigurationAnnotation');
 var IConfiguration          = bugpack.require('bugioc.IConfiguration');
 var ModuleAnnotation        = bugpack.require('bugioc.ModuleAnnotation');
 var PropertyAnnotation      = bugpack.require('bugioc.PropertyAnnotation');
+var BugMeta                 = bugpack.require('bugmeta.BugMeta');
 var ExpressApp              = bugpack.require('express.ExpressApp');
 var ExpressServer           = bugpack.require('express.ExpressServer');
 var LogsManager             = bugpack.require('sonarbugserver.LogsManager');
@@ -50,11 +50,11 @@ var SonarbugServer          = bugpack.require('sonarbugserver.SonarbugServer');
 // Simplify References
 //-------------------------------------------------------------------------------
 
-var annotate =      Annotate.annotate;
-var arg =           ArgAnnotation.arg;
-var configuration = ConfigurationAnnotation.configuration;
-var module =        ModuleAnnotation.module;
-var property =      PropertyAnnotation.property;
+var bugmeta                 = BugMeta.context();
+var arg                     = ArgAnnotation.arg;
+var configuration           = ConfigurationAnnotation.configuration;
+var module                  = ModuleAnnotation.module;
+var property                = PropertyAnnotation.property;
 
 
 //-------------------------------------------------------------------------------
@@ -140,15 +140,15 @@ Class.implement(SonarbugServerConfiguration, IConfiguration);
 
 
 //-------------------------------------------------------------------------------
-// Annotate
+// BugMeta
 //-------------------------------------------------------------------------------
 
-annotate(SonarbugServerConfiguration).with(
+bugmeta.annotate(SonarbugServerConfiguration).with(
     configuration().modules([
         module("expressApp"),
         module("expressServer")
             .args([
-                arg("expressApp").ref("expressApp")
+                arg().ref("expressApp")
             ]),
         module("logsManager"),
         module("sonarbugServer")

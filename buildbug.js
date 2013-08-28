@@ -54,7 +54,7 @@ buildProperties({
         },
         sourcePaths: [
             "./projects/sonarbugserver/js/src",
-            "../bugjs/projects/annotate/js/src",
+            "../bugjs/projects/bugmeta/js/src",
             "../bugjs/projects/aws/js/src",
             '../bugjs/projects/bugflow/js/src',
             "../bugjs/projects/bugfs/js/src",
