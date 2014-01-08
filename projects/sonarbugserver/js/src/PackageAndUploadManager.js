@@ -23,8 +23,8 @@
 
 var bugpack     = require('bugpack').context();
 var fs          = require('fs');
-var fstream     = require("fstream");
-var path        = require("path");
+var fstream     = require('fstream');
+var path        = require('path');
 var tar         = require('tar');
 var zlib        = require('zlib');
 
@@ -64,7 +64,7 @@ var PackageAndUploadManager = Class.extend(Obj, {
     // Constructor
     //-------------------------------------------------------------------------------
 
-    _constructor: function(){
+    _constructor: function() {
 
         this._super();
 
@@ -105,7 +105,7 @@ var PackageAndUploadManager = Class.extend(Obj, {
      * }=} options
      * @param {function(error)} callback
      */
-    initialize: function(options, callback){
+    initialize: function(options, callback) {
         console.log('PackageAndUploadManager initializing...');
         var _this = this;
         if (typeof options === 'function') {
@@ -128,19 +128,19 @@ var PackageAndUploadManager = Class.extend(Obj, {
 
                 flow.complete();
             }),
-            $task(function(flow){
+            $task(function(flow) {
                 _this.awsUploader           = new AwsUploader(path.resolve(__dirname, '..') + '/config.json');
-                _this.awsUploader.initialize(function(error){
-                    if(!error){
-                        console.log("awsUploader initialized");
+                _this.awsUploader.initialize(function(error) {
+                    if (!error) {
+                        console.log('awsUploader initialized');
                     } else {
-                        console.log("awsUploader failed to initialize");
+                        console.log('awsUploader failed to initialize');
                     }
                     flow.complete(error);
                 });
             })
         ]).execute(function(error) {
-            if(!error){
+            if (!error) {
                 console.log('PackageAndUploadManager successfully initialized');
             } else {
                 console.log('PackageAndUploadManager failed to initialize');
@@ -153,14 +153,14 @@ var PackageAndUploadManager = Class.extend(Obj, {
       * @param {string=} directoryName
       * @param {function(error, string)} callback
       */
-    package: function(directoryName, callback){
+    package: function(directoryName, callback) {
 
         var directoryPath = this.toPackageFoldersPath + '/' + directoryName;
-        var inp = fstream.Reader({path: directoryPath, type: "Directory"});
+        var inp = fstream.Reader({path: directoryPath, type: 'Directory'});
         var outputFilePath = this.packagedFolderPath + '/' + directoryName + '.tgz';
         var out = fstream.Writer(outputFilePath);
 
-        $task(function(flow){
+        $task(function(flow) {
             inp.pipe(tar.Pack()).pipe(zlib.createGzip())
                 .on('end', function() {
                     console.log("Packed up directory, '" + directoryPath + "', to " + outputFilePath);
@@ -171,10 +171,10 @@ var PackageAndUploadManager = Class.extend(Obj, {
                 })
                 .pipe(out);
         }).execute(function(error) {
-            if(callback){
+            if (callback) {
                 callback(error, outputFilePath);
             }
-        })
+        });
     },
 
     /**
@@ -184,8 +184,8 @@ var PackageAndUploadManager = Class.extend(Obj, {
     packageAndUpload: function(directoryName, callback) {
         var _this = this;
         this.package(directoryName, function(error, filePath) {
-            if(!error){
-                _this.upload(filePath, function(error){
+            if (!error) {
+                _this.upload(filePath, function(error) {
                     callback(error, directoryName);
                 });
             } else {
@@ -198,33 +198,33 @@ var PackageAndUploadManager = Class.extend(Obj, {
     /**
      * @param {function(error)} callback
      */
-    packageAndUploadEach: function(callback){        
+    packageAndUploadEach: function(callback) {
         var _this = this;
         var directoryPath = this.toPackageFoldersPath;
         var callback = callback || function() {};
         $series([
             $task(function(flow) {
-                fs.readdir(directoryPath, function(error, directories){
-                    if(error){
+                fs.readdir(directoryPath, function(error, directories) {
+                    if (error) {
                         flow.error(error);
-                    } else if(directories.length === 0){
-                        console.log("There are no directories package and upload in", directoryPath);
+                    } else if (directories.length === 0) {
+                        console.log('There are no directories package and upload in', directoryPath);
                         flow.complete();
-                    } else if(directories.length > 0){
+                    } else if (directories.length > 0) {
                         $forEachParallel(directories, function(flow, directory) {
                             _this.packageAndUpload(directory, function(error, directory) {
-                                BugFs.deleteDirectory(path.resolve(directoryPath, directory), true, false, function(error){
-                                    if(!error){
-                                        console.log("Directory", directory, "successfully removed");
+                                BugFs.deleteDirectory(path.resolve(directoryPath, directory), true, false, function(error) {
+                                    if (!error) {
+                                        console.log('Directory', directory, 'successfully removed');
                                     } else {
-                                        console.log("Failed to remove directory", directory);
+                                        console.log('Failed to remove directory', directory);
                                     }
                                     flow.complete(error);
                                 });
                             });
-                        }).execute(function(error){
-                            if(!error){
-                                console.log("Successfully packaged and uploaded all available directories in", directoryPath);
+                        }).execute(function(error) {
+                            if (!error) {
+                                console.log('Successfully packaged and uploaded all available directories in', directoryPath);
                             }
                             flow.complete(error);
                         });
@@ -247,7 +247,7 @@ var PackageAndUploadManager = Class.extend(Obj, {
      * @param {string} outputDirectoryPath
      * @param {function(error)} callback
      */
-    uploadEach: function(outputDirectoryPath, callback){
+    uploadEach: function(outputDirectoryPath, callback) {
         this.awsUploader.uploadEach(outputDirectoryPath, callback);
     }
 });
