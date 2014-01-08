@@ -238,8 +238,9 @@ var PackageAndUploadManager = Class.extend(Obj, {
      * @param {string} outputFilePath
      * @param {function(error)} callback
      */
-    upload: function(outputFilePath, callback){
-        this.awsUploader.upload(outputFilePath, callback);
+    upload: function(outputFilePath, callback) {
+        var filePath = new Path(outputFilePath);
+        this.awsUploader.upload(outputFilePath, filePath.getName(), null, callback);
     },
 
     /**
