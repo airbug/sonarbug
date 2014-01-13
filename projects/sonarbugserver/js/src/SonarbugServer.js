@@ -423,6 +423,9 @@ var SonarbugServer = Class.extend(Obj, {
             var options = {
                 cwd: path.resolve(__dirname, '..', 'scripts/')
             };
+
+            //TODO BRN: Change out this call for child_process.spawn. this will prevent buffer overflow errors.
+
             child_process.exec('node packageandupload.js', options, function(error, stdout, stderr){
                 console.log('stdout: ', stdout);
                 console.log('stderr: ', stderr);

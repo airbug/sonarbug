@@ -85,19 +85,26 @@ var SonarbugServerConfiguration = Class.extend(Obj, {
 
 
     //-------------------------------------------------------------------------------
-    // Configuration Lifecycle
+    // IConfiguration Implementation
     //-------------------------------------------------------------------------------
 
     /**
-     * @param {function(Error)}
-        */
+     * @param {function(Throwable=)} callback
+     */
+    deinitializeConfiguration: function(callback) {
+        callback();
+    },
+
+    /**
+     * @param {function(Throwable=)} callback
+     */
     initializeConfiguration: function(callback) {
         this._sonarbugServer.start(callback);
     },
 
 
     //-------------------------------------------------------------------------------
-    // Configuration Methods
+    // Public Methods
     //-------------------------------------------------------------------------------
 
     /**
@@ -144,7 +151,7 @@ Class.implement(SonarbugServerConfiguration, IConfiguration);
 //-------------------------------------------------------------------------------
 
 bugmeta.annotate(SonarbugServerConfiguration).with(
-    configuration().modules([
+    configuration("sonarbugServerConfiguration").modules([
         module("expressApp"),
         module("expressServer")
             .args([
