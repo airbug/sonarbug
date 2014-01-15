@@ -287,23 +287,27 @@ var SonarbugServer = Class.extend(Obj, {
         };
 
         this.configFilePath = configFile;
-        BugFs.exists(configFile, function(exists) {
-            if (exists) {
-                BugFs.readFileSync(configFile, 'utf-8', function(error, data) {
-                    if (!error) {
-                        _this.config = JSON.parse(data);
-                        console.log('sonarbug.config.json read in');
-                    }
-                    callback(error);
-                });
+        BugFs.exists(configFile, function(throwable, exists) {
+            if (!throwable) {
+                if (exists) {
+                    BugFs.readFileSync(configFile, 'utf-8', function(error, data) {
+                        if (!error) {
+                            _this.config = JSON.parse(data);
+                            console.log('sonarbug.config.json read in');
+                        }
+                        callback(error);
+                    });
+                } else {
+                    console.log("sonarbug.config.json could not be found");
+                    console.log("writing sonarbug.config.json file...");
+                    _this.config = configDefault;
+                    BugFs.writeFile(configFile, JSON.stringify(configDefault), function(error) {
+                        console.log("sonarbug.config.json written with defaults:", configDefault);
+                        callback(error);
+                    });
+                }
             } else {
-                console.log("sonarbug.config.json could not be found");
-                console.log("writing sonarbug.config.json file...");
-                _this.config = configDefault;
-                BugFs.writeFile(configFile, JSON.stringify(configDefault), function(error) {
-                    console.log("sonarbug.config.json written with defaults:", configDefault);
-                    callback(error);
-                });
+                callback(throwable);
             }
         });
     },
