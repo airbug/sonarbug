@@ -25,7 +25,9 @@
 // Common Modules
 //-------------------------------------------------------------------------------
 
-var bugpack = require('bugpack').context();
+var bugpack                 = require('bugpack').context();
+var express                 = require('express');
+var http                    = require('http');
 
 
 //-------------------------------------------------------------------------------
@@ -108,18 +110,33 @@ var SonarbugServerConfiguration = Class.extend(Obj, {
     //-------------------------------------------------------------------------------
 
     /**
-     * @return {ExpressApp}
+     * @return {Express}
      */
-    expressApp: function() {
-        return new ExpressApp();
+    express: function() {
+        return express;
     },
 
     /**
+     * @return {ExpressApp}
+     */
+    expressApp: function(express) {
+        return new ExpressApp(express);
+    },
+
+    /**
+     * @param {http} http
      * @param {ExpressApp} expressApp
      * @return {ExpressServer}
      */
-    expressServer: function(expressApp) {
-        return new ExpressServer(expressApp);
+    expressServer: function(http, expressApp) {
+        return new ExpressServer(http, expressApp);
+    },
+
+    /**
+     * @return {*}
+     */
+    http: function() {
+        return http;
     },
 
     /**
@@ -152,11 +169,17 @@ Class.implement(SonarbugServerConfiguration, IConfiguration);
 
 bugmeta.annotate(SonarbugServerConfiguration).with(
     configuration("sonarbugServerConfiguration").modules([
-        module("expressApp"),
+        module("express"),
+        module("expressApp")
+            .args([
+                arg().ref("express")
+            ]),
         module("expressServer")
             .args([
+                arg().ref("http"),
                 arg().ref("expressApp")
             ]),
+        module("http"),
         module("logsManager"),
         module("sonarbugServer")
             .properties([

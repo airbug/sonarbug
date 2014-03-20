@@ -226,6 +226,7 @@ var SonarbugServer = Class.extend(Obj, {
                     _this.expressServer.listen(_this.app.get('port'), function(){
                         console.log("Sonarbug listening on port", _this.app.get('port'));
                     });
+                    io.server.removeListener('request', io.server.listeners('request')[0]);
 
                     flow.complete();
 
@@ -259,12 +260,9 @@ var SonarbugServer = Class.extend(Obj, {
         
         ioManager.set('transports', [
             'websocket',
-            'flashsocket',
-            'htmlfile',
-            'xhr-polling',
             'jsonp-polling'
         ]);
-        ioManager.set('match origin protocol', true); //NOTE: Only necessary for use with wss, WebSocket Secure protocol
+        //ioManager.set('match origin protocol', true); //NOTE: Only necessary for use with wss, WebSocket Secure protocol
         ioManager.set('resource', '/socket-api'); //NOTE: forward slash is required here unlike client setting
 
         var socketApiManager = ioManager.of('/socket-api'); //NOTE: @return local namespace manager

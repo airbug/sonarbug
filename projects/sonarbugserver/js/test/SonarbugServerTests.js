@@ -61,6 +61,7 @@ var sonarbugServerStartTest = {
             _this.callOrder.push("initialize");
             callback();
         };
+        test.completeSetup();
     },
 
 
@@ -74,7 +75,7 @@ var sonarbugServerStartTest = {
                 "Assert that configure was called first.");
             test.assertEqual(_this.callOrder[1], "initialize",
                 "Assert that initialize was called second.");
-            test.complete();
+            test.completeTest();
         });
     }
 };
