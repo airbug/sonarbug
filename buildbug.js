@@ -40,7 +40,7 @@ buildProperties({
             version: "0.0.7",
             dependencies: {
                 "aws-sdk": "0.9.x",
-                "bugpack": "https://s3.amazonaws.com/airbug/bugpack-0.0.5.tgz",
+                "bugpack": "https://s3.amazonaws.com/deploy-airbug/bugpack-0.0.5.tgz",
                 "cron": "1.0.x",
                 "express": "3.1.x",
                 "fstream": '0.1.x',
