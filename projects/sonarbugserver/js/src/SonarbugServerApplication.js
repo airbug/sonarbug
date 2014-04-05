@@ -14,6 +14,7 @@
 //@Require('bugioc.ModuleAnnotationProcessor')
 //@Require('bugioc.ModuleScan')
 //@Require('bugioc.IocContext')
+//@Require('bugmeta.BugMeta')
 
 
 //-------------------------------------------------------------------------------
@@ -34,6 +35,7 @@ var ConfigurationAnnotationProcessor    = bugpack.require('bugioc.ConfigurationA
 var ConfigurationScan                   = bugpack.require('bugioc.ConfigurationScan');
 var ModuleAnnotationProcessor           = bugpack.require('bugioc.ModuleAnnotationProcessor');
 var ModuleScan                          = bugpack.require('bugioc.ModuleScan');
+var BugMeta                             = bugpack.require('bugmeta.BugMeta');
 
 
 //-------------------------------------------------------------------------------
@@ -65,13 +67,13 @@ var SonarbugServerApplication = Class.extend(Obj, {
          * @private
          * @type {ConfigurationScan}
          */
-        this.configurationScan  = new ConfigurationScan(new ConfigurationAnnotationProcessor(this.iocContext));
+        this.configurationScan  = new ConfigurationScan(BugMeta.context(), new ConfigurationAnnotationProcessor(this.iocContext));
 
         /**
          * @private
          * @type {ModuleScan}
          */
-        this.moduleScan         = new ModuleScan(new ModuleAnnotationProcessor(this.iocContext));
+        this.moduleScan         = new ModuleScan(BugMeta.context(), new ModuleAnnotationProcessor(this.iocContext));
     },
 
 
