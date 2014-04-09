@@ -121,7 +121,7 @@ buildTarget('local').buildFlow(
                 targetPaths: buildProject.getProperty("lint.targetPaths"),
                 ignores: buildProject.getProperty("lint.ignorePatterns"),
                 lintTasks: [
-                    "fixExportAndRemovePackageAnnotations"
+                    
                 ]
             }
         }),
@@ -200,7 +200,7 @@ buildTarget('prod').buildFlow(
                 targetPaths: buildProject.getProperty("lint.targetPaths"),
                 ignores: buildProject.getProperty("lint.ignorePatterns"),
                 lintTasks: [
-                    "fixExportAndRemovePackageAnnotations"
+
                 ]
             }
         }),
