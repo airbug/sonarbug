@@ -2,9 +2,7 @@
 // Annotations
 //-------------------------------------------------------------------------------
 
-//@Package('sonarbugserver')
-
-//@Export('SonarbugServerApplication')
+//@Export('sonarbugserver.SonarbugServerApplication')
 //@Autoload
 
 //@Require('Class')

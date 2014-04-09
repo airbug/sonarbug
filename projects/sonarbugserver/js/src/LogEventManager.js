@@ -2,9 +2,7 @@
 // Annotations
 //-------------------------------------------------------------------------------
 
-//@Package('sonarbugserver')
-
-//@Export('LogEventManager')
+//@Export('sonarbugserver.LogEventManager')
 
 //@Require('Class')
 //@Require('Event')

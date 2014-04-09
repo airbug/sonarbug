@@ -2,9 +2,7 @@
 // Annotations
 //-------------------------------------------------------------------------------
 
-//@Package('sonarbugserver')
-
-//@Export('CompletedLogsFolder')
+//@Export('sonarbugserver.CompletedLogsFolder')
 
 //@Require('Class')
 //@Require('Obj')
