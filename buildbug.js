@@ -2,31 +2,33 @@
 // Requires
 //-------------------------------------------------------------------------------
 
-var buildbug = require('buildbug');
+var buildbug            = require('buildbug');
 
 
 //-------------------------------------------------------------------------------
 // Simplify References
 //-------------------------------------------------------------------------------
 
-var buildProject = buildbug.buildProject;
-var buildProperties = buildbug.buildProperties;
-var buildTarget = buildbug.buildTarget;
-var enableModule = buildbug.enableModule;
-var parallel = buildbug.parallel;
-var series = buildbug.series;
-var targetTask = buildbug.targetTask;
+var buildProject        = buildbug.buildProject;
+var buildProperties     = buildbug.buildProperties;
+var buildScript         = buildbug.buildScript;
+var buildTarget         = buildbug.buildTarget;
+var enableModule        = buildbug.enableModule;
+var parallel            = buildbug.parallel;
+var series              = buildbug.series;
+var targetTask          = buildbug.targetTask;
 
 
 //-------------------------------------------------------------------------------
 // Enable Modules
 //-------------------------------------------------------------------------------
 
-var aws = enableModule("aws");
-var bugpack = enableModule('bugpack');
-var bugunit = enableModule('bugunit');
-var core = enableModule('core');
-var nodejs = enableModule('nodejs');
+var aws                 = enableModule("aws");
+var bugpack             = enableModule('bugpack');
+var bugunit             = enableModule('bugunit');
+var core                = enableModule('core');
+var lintbug             = enableModule("lintbug");
+var nodejs              = enableModule('nodejs');
 
 
 //-------------------------------------------------------------------------------
@@ -40,7 +42,7 @@ buildProperties({
             version: "0.0.7",
             dependencies: {
                 "aws-sdk": "0.9.x",
-                "bugpack": "https://s3.amazonaws.com/deploy-airbug/bugpack-0.0.5.tgz",
+                "bugpack": "0.1.5",
                 "cron": "1.0.x",
                 "express": "3.1.x",
                 "fstream": '0.1.x',
@@ -54,41 +56,49 @@ buildProperties({
         },
         sourcePaths: [
             "./projects/sonarbugserver/js/src",
-            "../bugjs/projects/bugmeta/js/src",
+            "../buganno/projects/buganno/js/src",
+            "../bugcore/projects/bugcore/js/src",
+            '../bugflow/projects/bugflow/js/src',
+            "../bugfs/projects/bugfs/js/src",
             "../bugjs/projects/aws/js/src",
-            '../bugjs/projects/bugflow/js/src',
-            "../bugjs/projects/bugfs/js/src",
             "../bugjs/projects/bugioc/js/src",
-            "../bugjs/projects/bugjs/js/src",
-            "../bugjs/projects/bugtrace/js/src",
             "../bugjs/projects/express/js/src",
+            "../bugmeta/projects/bugmeta/js/src",
+            "../bugtrace/projects/bugtrace/js/src",
             "../bugunit/projects/bugdouble/js/src",
             "../bugunit/projects/bugunit/js/src"
         ],
         scriptPaths: [
             "./projects/sonarbugserver/js/scripts",
+            "../buganno/projects/buganno/js/scripts",
             "../bugunit/projects/bugunit/js/scripts"
         ],
         testPaths: [
+            "../bugcore/projects/bugcore/js/test",
             "../bugjs/projects/bugioc/js/test",
-            "../bugjs/projects/bugjs/js/test",
-            "../bugjs/projects/bugtrace/js/test",
+            "../bugtrace/projects/bugtrace/js/test",
             "./projects/sonarbugserver/js/test"
+        ]
+    },
+    lint: {
+        targetPaths: [
+            "."
+        ],
+        ignorePatterns: [
+            ".*\\.buildbug$",
+            ".*\\.bugunit$",
+            ".*\\.git$",
+            ".*node_modules$"
         ]
     }
 });
 
 
 //-------------------------------------------------------------------------------
-// Declare Tasks
+// Declare BuildTargets
 //-------------------------------------------------------------------------------
 
-
-//-------------------------------------------------------------------------------
-// Declare Flows
-//-------------------------------------------------------------------------------
-
-// Clean Flow
+// Clean BuildTarget
 //-------------------------------------------------------------------------------
 
 buildTarget('clean').buildFlow(
@@ -96,7 +106,7 @@ buildTarget('clean').buildFlow(
 );
 
 
-// Local Flow
+// Local BuildTarget
 //-------------------------------------------------------------------------------
 
 buildTarget('local').buildFlow(
@@ -106,6 +116,15 @@ buildTarget('local').buildFlow(
         // old source files are removed. We should figure out a better way of doing that.
 
         targetTask('clean'),
+        targetTask('lint', {
+            properties: {
+                targetPaths: buildProject.getProperty("lint.targetPaths"),
+                ignores: buildProject.getProperty("lint.ignorePatterns"),
+                lintTasks: [
+                    "fixExportAndRemovePackageAnnotations"
+                ]
+            }
+        }),
         parallel([
             series([
                 targetTask('createNodePackage', {
@@ -166,7 +185,7 @@ buildTarget('local').buildFlow(
 ).makeDefault();
 
 
-// Prod Flow
+// Prod BuildTarget
 //-------------------------------------------------------------------------------
 
 buildTarget('prod').buildFlow(
@@ -176,6 +195,15 @@ buildTarget('prod').buildFlow(
         // old source files are removed. We should figure out a better way of doing that.
 
         targetTask('clean'),
+        targetTask('lint', {
+            properties: {
+                targetPaths: buildProject.getProperty("lint.targetPaths"),
+                ignores: buildProject.getProperty("lint.ignorePatterns"),
+                lintTasks: [
+                    "fixExportAndRemovePackageAnnotations"
+                ]
+            }
+        }),
         parallel([
             series([
                 targetTask('createNodePackage', {
@@ -234,3 +262,15 @@ buildTarget('prod').buildFlow(
         ])
     ])
 );
+
+//-------------------------------------------------------------------------------
+// Build Scripts
+//-------------------------------------------------------------------------------
+
+buildScript({
+    dependencies: [
+        "bugcore",
+        "bugflow"
+    ],
+    script: "../bugjs/lintbug.js"
+});
