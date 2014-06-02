@@ -7,7 +7,7 @@
 //@Require('Class')
 //@Require('Obj')
 //@Require('bugmeta.BugMeta')
-//@Require('bugunit.TestAnnotation')
+//@Require('bugunit.TestTag')
 //@Require('sonarbugserver.LogsManager')
 
 
@@ -25,7 +25,7 @@ var bugpack = require('bugpack').context();
 var Class               = bugpack.require('Class');
 var Obj                 = bugpack.require('Obj');
 var BugMeta             = bugpack.require('bugmeta.BugMeta');
-var TestAnnotation      = bugpack.require('bugunit.TestAnnotation');
+var TestTag      = bugpack.require('bugunit.TestTag');
 var LogsManager         = bugpack.require('sonarbugserver.LogsManager');
 
 
@@ -34,7 +34,7 @@ var LogsManager         = bugpack.require('sonarbugserver.LogsManager');
 //-------------------------------------------------------------------------------
 
 var bugmeta             = BugMeta.context();
-var test                = TestAnnotation.test;
+var test                = TestTag.test;
 
 
 //-------------------------------------------------------------------------------
@@ -89,7 +89,7 @@ var updateLogEventManagersTest = {
             "Assert that all of the logEventManagers have been called once.");
     }
 };
-bugmeta.annotate(updateLogEventManagersTest).with(
+bugmeta.tag(updateLogEventManagersTest).with(
     test().name("LogsManager #updateLogEventManagers Test")
 );
 

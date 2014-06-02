@@ -42,7 +42,7 @@ buildProperties({
             version: "0.0.7",
             dependencies: {
                 "aws-sdk": "0.9.x",
-                "bugpack": "0.1.5",
+                "bugpack": "0.1.6",
                 "cron": "1.0.x",
                 "express": "3.1.x",
                 "fstream": '0.1.x',

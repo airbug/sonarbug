@@ -7,7 +7,7 @@
 //@Require('Class')
 //@Require('Obj')
 //@Require('bugmeta.BugMeta')
-//@Require('bugunit.TestAnnotation')
+//@Require('bugunit.TestTag')
 //@Require('sonarbugserver.LogEventManager')
 
 
@@ -25,7 +25,7 @@ var bugpack = require('bugpack').context();
 var Class               = bugpack.require('Class');
 var Obj                 = bugpack.require('Obj');
 var BugMeta             = bugpack.require('bugmeta.BugMeta');
-var TestAnnotation      = bugpack.require('bugunit.TestAnnotation');
+var TestTag      = bugpack.require('bugunit.TestTag');
 var LogEventManager     = bugpack.require('sonarbugserver.LogEventManager');
 
 
@@ -34,7 +34,7 @@ var LogEventManager     = bugpack.require('sonarbugserver.LogEventManager');
 //-------------------------------------------------------------------------------
 
 var bugmeta             = BugMeta.context();
-var test                = TestAnnotation.test;
+var test                = TestTag.test;
 
 
 //-------------------------------------------------------------------------------
@@ -66,7 +66,7 @@ var getMoveCountTest = {
             "Assert getMoveCount returns the moveCount set to 3");
     }
 };
-bugmeta.annotate(getMoveCountTest).with(
+bugmeta.tag(getMoveCountTest).with(
     test().name("LogEventManager #getMoveCount Test")
 );
 
@@ -100,7 +100,7 @@ var incrementMoveCountTest = {
             "Assert the value of the moveCount after one incrementMoveCount is 2");
     }
 };
-bugmeta.annotate(incrementMoveCountTest).with(
+bugmeta.tag(incrementMoveCountTest).with(
     test().name("LogEventManager #incrementMoveCount Test")
 );
 
@@ -138,6 +138,6 @@ var decrementMoveCountTest = {
             "Assert the value of the moveCount after three decrementMoveCount is 0");
     }
 };
-bugmeta.annotate(decrementMoveCountTest).with(
+bugmeta.tag(decrementMoveCountTest).with(
     test().name("LogEventManager #decrementMoveCount Test")
 );

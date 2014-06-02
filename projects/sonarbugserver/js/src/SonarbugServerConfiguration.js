@@ -7,11 +7,11 @@
 
 //@Require('Class')
 //@Require('Obj')
-//@Require('bugioc.ArgAnnotation')
-//@Require('bugioc.ConfigurationAnnotation')
+//@Require('bugioc.ArgTag')
+//@Require('bugioc.ConfigurationTag')
 //@Require('bugioc.IConfiguration')
-//@Require('bugioc.ModuleAnnotation')
-//@Require('bugioc.PropertyAnnotation')
+//@Require('bugioc.ModuleTag')
+//@Require('bugioc.PropertyTag')
 //@Require('bugmeta.BugMeta')
 //@Require('express.ExpressApp')
 //@Require('express.ExpressServer')
@@ -34,11 +34,11 @@ var http                    = require('http');
 
 var Class                   = bugpack.require('Class');
 var Obj                     = bugpack.require('Obj');
-var ArgAnnotation           = bugpack.require('bugioc.ArgAnnotation');
-var ConfigurationAnnotation = bugpack.require('bugioc.ConfigurationAnnotation');
+var ArgTag           = bugpack.require('bugioc.ArgTag');
+var ConfigurationTag = bugpack.require('bugioc.ConfigurationTag');
 var IConfiguration          = bugpack.require('bugioc.IConfiguration');
-var ModuleAnnotation        = bugpack.require('bugioc.ModuleAnnotation');
-var PropertyAnnotation      = bugpack.require('bugioc.PropertyAnnotation');
+var ModuleTag        = bugpack.require('bugioc.ModuleTag');
+var PropertyTag      = bugpack.require('bugioc.PropertyTag');
 var BugMeta                 = bugpack.require('bugmeta.BugMeta');
 var ExpressApp              = bugpack.require('express.ExpressApp');
 var ExpressServer           = bugpack.require('express.ExpressServer');
@@ -51,10 +51,10 @@ var SonarbugServer          = bugpack.require('sonarbugserver.SonarbugServer');
 //-------------------------------------------------------------------------------
 
 var bugmeta                 = BugMeta.context();
-var arg                     = ArgAnnotation.arg;
-var configuration           = ConfigurationAnnotation.configuration;
-var module                  = ModuleAnnotation.module;
-var property                = PropertyAnnotation.property;
+var arg                     = ArgTag.arg;
+var configuration           = ConfigurationTag.configuration;
+var module                  = ModuleTag.module;
+var property                = PropertyTag.property;
 
 
 //-------------------------------------------------------------------------------
@@ -165,7 +165,7 @@ Class.implement(SonarbugServerConfiguration, IConfiguration);
 // BugMeta
 //-------------------------------------------------------------------------------
 
-bugmeta.annotate(SonarbugServerConfiguration).with(
+bugmeta.tag(SonarbugServerConfiguration).with(
     configuration("sonarbugServerConfiguration").modules([
         module("express"),
         module("expressApp")
