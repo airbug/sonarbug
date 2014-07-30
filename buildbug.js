@@ -57,14 +57,13 @@ buildProperties({
         sourcePaths: [
             "./projects/sonarbugserver/js/src",
             "../buganno/projects/buganno/js/src",
-            "../bugcore/projects/bugcore/js/src",
+            "../bugcore/libraries/bugcore/js/src",
             '../bugflow/projects/bugflow/js/src',
             "../bugfs/projects/bugfs/js/src",
             "../bugjs/projects/aws/js/src",
-            "../bugjs/projects/bugioc/js/src",
+            "../bugioc/libraries/bugioc/js/src",
             "../bugjs/projects/express/js/src",
             "../bugmeta/projects/bugmeta/js/src",
-            "../bugtrace/projects/bugtrace/js/src",
             "../bugunit/projects/bugdouble/js/src",
             "../bugunit/projects/bugunit/js/src"
         ],
@@ -74,9 +73,8 @@ buildProperties({
             "../bugunit/projects/bugunit/js/scripts"
         ],
         testPaths: [
-            "../bugcore/projects/bugcore/js/test",
-            "../bugjs/projects/bugioc/js/test",
-            "../bugtrace/projects/bugtrace/js/test",
+            "../bugcore/libraries/bugcore/js/test",
+            "../bugioc/libraries/bugioc/js/test",
             "./projects/sonarbugserver/js/test"
         ]
     },
