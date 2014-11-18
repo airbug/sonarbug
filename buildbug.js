@@ -32,51 +32,80 @@ var nodejs              = enableModule('nodejs');
 
 
 //-------------------------------------------------------------------------------
+// Values
+//-------------------------------------------------------------------------------
+
+var name                = "sonarbug";
+var version             = "0.0.7";
+var dependencies        = {
+    "aws-sdk": "0.9.x",
+    "bugpack": "0.1.6",
+    "cron": "1.0.x",
+    "express": "3.1.x",
+    "fstream": '0.1.x',
+    "socket.io": "0.9.x",
+    "tar": 'git://github.com/airbug/node-tar.git#master',
+    "time": "0.9.x"
+};
+
+
+//-------------------------------------------------------------------------------
 // Declare Properties
 //-------------------------------------------------------------------------------
 
 buildProperties({
-    sonarbugserver: {
+    name: name,
+    version: version
+});
+
+buildProperties({
+    server: {
         packageJson: {
-            name: "sonarbugserver",
-            version: "0.0.7",
-            dependencies: {
-                "aws-sdk": "0.9.x",
-                "bugpack": "0.1.6",
-                "cron": "1.0.x",
-                "express": "3.1.x",
-                "fstream": '0.1.x',
-                "socket.io": "0.9.x",
-                "tar": 'git://github.com/airbug/node-tar.git#master',
-                "time": "0.9.x"
-            },
+            name: "{{name}}server",
+            version: "{{version}}",
+            dependencies: dependencies,
             scripts: {
-                "start": "node ./scripts/sonarbug-server-application-start.js"
+                "start": "node ./scripts/sonarbugserver-application-start.js"
             }
         },
         sourcePaths: [
             "./projects/sonarbugserver/js/src",
-            "../buganno/projects/buganno/js/src",
+            "../bugaws/libraries/bugaws/js/src",
             "../bugcore/libraries/bugcore/js/src",
-            '../bugflow/projects/bugflow/js/src',
-            "../bugfs/projects/bugfs/js/src",
-            "../bugjs/projects/aws/js/src",
+            "../bugfs/libraries/bugfs/js/src",
             "../bugioc/libraries/bugioc/js/src",
             "../bugjs/projects/express/js/src",
-            "../bugmeta/projects/bugmeta/js/src",
-            "../bugunit/projects/bugdouble/js/src",
-            "../bugunit/projects/bugunit/js/src"
+            "../bugmeta/libraries/bugmeta/js/src"
         ],
         scriptPaths: [
-            "./projects/sonarbugserver/js/scripts",
-            "../buganno/projects/buganno/js/scripts",
-            "../bugunit/projects/bugunit/js/scripts"
+            "./projects/sonarbugserver/js/scripts"
         ],
-        testPaths: [
-            "../bugcore/libraries/bugcore/js/test",
-            "../bugioc/libraries/bugioc/js/test",
-            "./projects/sonarbugserver/js/test"
-        ]
+        unitTest: {
+            packageJson: {
+                name: "{{name}}server-test",
+                version: "{{version}}",
+                dependencies: dependencies,
+                private: true,
+                scripts: {
+                    test: "node ./test/scripts/bugunit-run.js"
+                }
+            },
+            sourcePaths: [
+                "../buganno/libraries/buganno/js/src",
+                "../bugdouble/libraries/bugdouble/js/src",
+                "../bugunit/libraries/bugunit/js/src",
+                "../bugyarn/libraries/bugyarn/js/src"
+            ],
+            scriptPaths: [
+                "../buganno/libraries/buganno/js/scripts",
+                "../bugunit/libraries/bugunit/js/scripts"
+            ],
+            testPaths: [
+                "../bugcore/libraries/bugcore/js/test",
+                "../bugioc/libraries/bugioc/js/test",
+                "./projects/sonarbugserver/js/test"
+            ]
+        }
     },
     lint: {
         targetPaths: [
@@ -119,7 +148,12 @@ buildTarget('local').buildFlow(
                 targetPaths: buildProject.getProperty("lint.targetPaths"),
                 ignores: buildProject.getProperty("lint.ignorePatterns"),
                 lintTasks: [
-                    
+                    "cleanupExtraSpacingAtEndOfLines",
+                    "ensureNewLineEnding",
+                    "indentEqualSignsForPreClassVars",
+                    "orderBugpackRequires",
+                    "orderRequireAnnotations",
+                    "updateCopyright"
                 ]
             }
         }),
@@ -127,18 +161,21 @@ buildTarget('local').buildFlow(
             series([
                 targetTask('createNodePackage', {
                     properties: {
-                        packageJson: buildProject.getProperty("sonarbugserver.packageJson"),
-                        sourcePaths: buildProject.getProperty("sonarbugserver.sourcePaths"),
-                        scriptPaths: buildProject.getProperty("sonarbugserver.scriptPaths"),
-                        testPaths: buildProject.getProperty("sonarbugserver.testPaths"),
-                        binPaths: buildProject.getProperty("sonarbugserver.binPaths")
+                        packageJson: buildProject.getProperty("server.packageJson"),
+                        packagePaths: {
+                            "./lib": buildProject.getProperty("server.sourcePaths"),
+                            "./scripts": buildProject.getProperty("server.scriptPaths"),
+                            "./test": buildProject.getProperty("server.unitTest.testPaths"),
+                            "./test/lib": buildProject.getProperty("server.unitTest.sourcePaths"),
+                            "./test/scripts": buildProject.getProperty("server.unitTest.scriptPaths")
+                        }
                     }
                 }),
                 targetTask('generateBugPackRegistry', {
                     init: function(task, buildProject, properties) {
                         var nodePackage = nodejs.findNodePackage(
-                            buildProject.getProperty("sonarbugserver.packageJson.name"),
-                            buildProject.getProperty("sonarbugserver.packageJson.version")
+                            buildProject.getProperty("server.packageJson.name"),
+                            buildProject.getProperty("server.packageJson.version")
                         );
                         task.updateProperties({
                             sourceRoot: nodePackage.getBuildPath()
@@ -147,15 +184,15 @@ buildTarget('local').buildFlow(
                 }),
                 targetTask('packNodePackage', {
                     properties: {
-                        packageName: buildProject.getProperty("sonarbugserver.packageJson.name"),
-                        packageVersion: buildProject.getProperty("sonarbugserver.packageJson.version")
+                        packageName: buildProject.getProperty("server.packageJson.name"),
+                        packageVersion: buildProject.getProperty("server.packageJson.version")
                     }
                 }),
                 targetTask('startNodeModuleTests', {
                     init: function(task, buildProject, properties) {
                         var packedNodePackage = nodejs.findPackedNodePackage(
-                            buildProject.getProperty("sonarbugserver.packageJson.name"),
-                            buildProject.getProperty("sonarbugserver.packageJson.version")
+                            buildProject.getProperty("server.packageJson.name"),
+                            buildProject.getProperty("server.packageJson.version")
                         );
                         task.updateProperties({
                             modulePath: packedNodePackage.getFilePath()
@@ -164,8 +201,8 @@ buildTarget('local').buildFlow(
                 }),
                 targetTask("s3PutFile", {
                     init: function(task, buildProject, properties) {
-                        var packedNodePackage = nodejs.findPackedNodePackage(buildProject.getProperty("sonarbugserver.packageJson.name"),
-                            buildProject.getProperty("sonarbugserver.packageJson.version"));
+                        var packedNodePackage = nodejs.findPackedNodePackage(buildProject.getProperty("server.packageJson.name"),
+                            buildProject.getProperty("server.packageJson.version"));
                         task.updateProperties({
                             file: packedNodePackage.getFilePath(),
                             options: {
@@ -198,7 +235,12 @@ buildTarget('prod').buildFlow(
                 targetPaths: buildProject.getProperty("lint.targetPaths"),
                 ignores: buildProject.getProperty("lint.ignorePatterns"),
                 lintTasks: [
-
+                    "cleanupExtraSpacingAtEndOfLines",
+                    "ensureNewLineEnding",
+                    "indentEqualSignsForPreClassVars",
+                    "orderBugpackRequires",
+                    "orderRequireAnnotations",
+                    "updateCopyright"
                 ]
             }
         }),
@@ -206,18 +248,21 @@ buildTarget('prod').buildFlow(
             series([
                 targetTask('createNodePackage', {
                     properties: {
-                        packageJson: buildProject.getProperty("sonarbugserver.packageJson"),
-                        sourcePaths: buildProject.getProperty("sonarbugserver.sourcePaths"),
-                        scriptPaths: buildProject.getProperty("sonarbugserver.scriptPaths"),
-                        testPaths: buildProject.getProperty("sonarbugserver.testPaths"),
-                        binPaths: buildProject.getProperty("sonarbugserver.binPaths")
+                        packageJson: buildProject.getProperty("server.packageJson"),
+                        packagePaths: {
+                            "./lib": buildProject.getProperty("server.sourcePaths"),
+                            "./scripts": buildProject.getProperty("server.scriptPaths"),
+                            "./test": buildProject.getProperty("server.unitTest.testPaths"),
+                            "./test/lib": buildProject.getProperty("server.unitTest.sourcePaths"),
+                            "./test/scripts": buildProject.getProperty("server.unitTest.scriptPaths")
+                        }
                     }
                 }),
                 targetTask('generateBugPackRegistry', {
                     init: function(task, buildProject, properties) {
                         var nodePackage = nodejs.findNodePackage(
-                            buildProject.getProperty("sonarbugserver.packageJson.name"),
-                            buildProject.getProperty("sonarbugserver.packageJson.version")
+                            buildProject.getProperty("server.packageJson.name"),
+                            buildProject.getProperty("server.packageJson.version")
                         );
                         task.updateProperties({
                             sourceRoot: nodePackage.getBuildPath()
@@ -226,15 +271,15 @@ buildTarget('prod').buildFlow(
                 }),
                 targetTask('packNodePackage', {
                     properties: {
-                        packageName: buildProject.getProperty("sonarbugserver.packageJson.name"),
-                        packageVersion: buildProject.getProperty("sonarbugserver.packageJson.version")
+                        packageName: buildProject.getProperty("server.packageJson.name"),
+                        packageVersion: buildProject.getProperty("server.packageJson.version")
                     }
                 }),
                 targetTask('startNodeModuleTests', {
                     init: function(task, buildProject, properties) {
                         var packedNodePackage = nodejs.findPackedNodePackage(
-                            buildProject.getProperty("sonarbugserver.packageJson.name"),
-                            buildProject.getProperty("sonarbugserver.packageJson.version")
+                            buildProject.getProperty("server.packageJson.name"),
+                            buildProject.getProperty("server.packageJson.version")
                         );
                         task.updateProperties({
                             modulePath: packedNodePackage.getFilePath()
@@ -243,8 +288,8 @@ buildTarget('prod').buildFlow(
                 }),
                 targetTask("s3PutFile", {
                     init: function(task, buildProject, properties) {
-                        var packedNodePackage = nodejs.findPackedNodePackage(buildProject.getProperty("sonarbugserver.packageJson.name"),
-                            buildProject.getProperty("sonarbugserver.packageJson.version"));
+                        var packedNodePackage = nodejs.findPackedNodePackage(buildProject.getProperty("server.packageJson.name"),
+                            buildProject.getProperty("server.packageJson.version"));
                         task.updateProperties({
                             file: packedNodePackage.getFilePath(),
                             options: {
@@ -268,7 +313,8 @@ buildTarget('prod').buildFlow(
 buildScript({
     dependencies: [
         "bugcore",
-        "bugflow"
+        "bugflow",
+        "bugfs"
     ],
-    script: "../bugjs/lintbug.js"
+    script: "./lintbug.js"
 });
